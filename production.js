@@ -807,75 +807,265 @@ function drawDailyKpi(pdf, x, y, width, label, value) {
   pdf.text(value, x + 4, y + 13.2);
 }
 
-function drawDailyTable(pdf, title, startY, head, rows, colorColumn, density) {
+function dailyReportLayout(density) {
+  if (density <= 8) {
+    return {
+      titleFontSize: 11,
+      titleGap: 4,
+      fontSize: 9.2,
+      headFontSize: 8.7,
+      cellPadding: 3.2,
+      sectionGap: 11,
+      summaryGap: 8,
+      summaryHeight: 14,
+      summaryFontSize: 9.2,
+      swatchSize: 4
+    };
+  }
+
+  if (density <= 12) {
+    return {
+      titleFontSize: 10.5,
+      titleGap: 3.7,
+      fontSize: 8.4,
+      headFontSize: 8,
+      cellPadding: 2.6,
+      sectionGap: 9,
+      summaryGap: 7,
+      summaryHeight: 13,
+      summaryFontSize: 8.8,
+      swatchSize: 3.7
+    };
+  }
+
+  if (density <= 18) {
+    return {
+      titleFontSize: 10,
+      titleGap: 3.4,
+      fontSize: 7.2,
+      headFontSize: 7,
+      cellPadding: 1.7,
+      sectionGap: 7,
+      summaryGap: 5,
+      summaryHeight: 12,
+      summaryFontSize: 8.2,
+      swatchSize: 3.4
+    };
+  }
+
+  if (density <= 26) {
+    return {
+      titleFontSize: 9.5,
+      titleGap: 3.1,
+      fontSize: 6.3,
+      headFontSize: 6.1,
+      cellPadding: 1.45,
+      sectionGap: 5.5,
+      summaryGap: 4,
+      summaryHeight: 11,
+      summaryFontSize: 7.6,
+      swatchSize: 3.1
+    };
+  }
+
+  if (density <= 34) {
+    return {
+      titleFontSize: 9,
+      titleGap: 2.8,
+      fontSize: 5.5,
+      headFontSize: 5.3,
+      cellPadding: 1.15,
+      sectionGap: 4.5,
+      summaryGap: 3.5,
+      summaryHeight: 10,
+      summaryFontSize: 7,
+      swatchSize: 2.8
+    };
+  }
+
+  if (density <= 42) {
+    return {
+      titleFontSize: 8.5,
+      titleGap: 2.5,
+      fontSize: 4.8,
+      headFontSize: 4.8,
+      cellPadding: 0.85,
+      sectionGap: 4,
+      summaryGap: 3,
+      summaryHeight: 9,
+      summaryFontSize: 6.4,
+      swatchSize: 2.5
+    };
+  }
+
+  return {
+    titleFontSize: 8,
+    titleGap: 2.3,
+    fontSize: 4,
+    headFontSize: 4.5,
+    cellPadding: 0.3,
+    sectionGap: 2.5,
+    summaryGap: 2,
+    summaryHeight: 8,
+    summaryFontSize: 6,
+    swatchSize: 2.1
+  };
+}
+
+function drawDailyTable(
+  pdf,
+  title,
+  startY,
+  head,
+  rows,
+  colorColumn,
+  density
+) {
+  const layout = dailyReportLayout(density);
+
   pdf.setTextColor(37, 99, 235);
   pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(9.5);
+  pdf.setFontSize(layout.titleFontSize);
   pdf.text(title, 14, startY);
 
   if (!rows.length) {
     pdf.setFillColor(248, 250, 252);
     pdf.setDrawColor(226, 232, 240);
-    pdf.rect(14, startY + 3, 182, 8, 'FD');
+
+    const emptyHeight = density <= 12 ? 11 : 8;
+
+    pdf.rect(
+      14,
+      startY + layout.titleGap,
+      182,
+      emptyHeight,
+      'FD'
+    );
+
     pdf.setTextColor(100, 116, 139);
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(7);
-    pdf.text(`No ${title.toLowerCase()} records.`, 17, startY + 8.2);
-    return startY + 11;
+    pdf.setFontSize(layout.fontSize);
+
+    pdf.text(
+      `No ${title.toLowerCase()} records.`,
+      17,
+      startY + layout.titleGap + emptyHeight / 2 + 1.1
+    );
+
+    return startY + layout.titleGap + emptyHeight;
   }
 
-  const fontSize = density <= 12 ? 7.1 : density <= 20 ? 6.2 : density <= 30 ? 5.2 : 4.3;
-  const cellPadding = density <= 12 ? 1.55 : density <= 20 ? 1.15 : density <= 30 ? 0.75 : 0.4;
-  const headFontSize = Math.max(4.8, fontSize - 0.1);
   const columnStyles = title.startsWith('Mixer')
-    ? { 0: { cellWidth: 19 }, 1: { cellWidth: 29 }, 2: { cellWidth: 22 }, 3: { cellWidth: 53 }, 4: { cellWidth: 27 }, 5: { cellWidth: 32, halign: 'right' } }
-    : { 0: { cellWidth: 22 }, 1: { cellWidth: 38 }, 2: { cellWidth: 49 }, 3: { cellWidth: 35 }, 4: { cellWidth: 38, halign: 'right' } };
+    ? {
+        0: { cellWidth: 19 },
+        1: { cellWidth: 29 },
+        2: { cellWidth: 22 },
+        3: { cellWidth: 53 },
+        4: { cellWidth: 27 },
+        5: { cellWidth: 32, halign: 'right' }
+      }
+    : {
+        0: { cellWidth: 22 },
+        1: { cellWidth: 38 },
+        2: { cellWidth: 49 },
+        3: { cellWidth: 35 },
+        4: { cellWidth: 38, halign: 'right' }
+      };
 
   pdf.autoTable({
-    startY: startY + 3,
+    startY: startY + layout.titleGap,
     head: [head],
     body: rows,
     theme: 'grid',
+
     styles: {
       font: 'helvetica',
-      fontSize,
+      fontSize: layout.fontSize,
       textColor: [24, 48, 83],
       lineColor: [216, 226, 240],
       lineWidth: 0.2,
-      cellPadding,
+      cellPadding: layout.cellPadding,
       overflow: 'ellipsize',
       valign: 'middle'
     },
+
     headStyles: {
       fillColor: [233, 241, 253],
       textColor: [28, 67, 121],
       fontStyle: 'bold',
-      fontSize: headFontSize,
+      fontSize: layout.headFontSize,
       lineColor: [216, 226, 240]
     },
-    alternateRowStyles: { fillColor: [248, 250, 253] },
+
+    alternateRowStyles: {
+      fillColor: [248, 250, 253]
+    },
+
     columnStyles,
-    margin: { left: 14, right: 14 },
+
+    margin: {
+      left: 14,
+      right: 14
+    },
+
     didParseCell(data) {
-      if (data.row.section === 'body' && data.column.index === colorColumn) {
+      if (
+        data.row.section === 'body' &&
+        data.column.index === colorColumn
+      ) {
         const padding = data.cell.styles.cellPadding;
+
         data.cell.styles.cellPadding = {
-          top: typeof padding === 'number' ? padding : padding.top,
-          right: typeof padding === 'number' ? padding : padding.right,
-          bottom: typeof padding === 'number' ? padding : padding.bottom,
+          top:
+            typeof padding === 'number'
+              ? padding
+              : padding.top,
+
+          right:
+            typeof padding === 'number'
+              ? padding
+              : padding.right,
+
+          bottom:
+            typeof padding === 'number'
+              ? padding
+              : padding.bottom,
+
           left: 6.2
         };
       }
     },
+
     didDrawCell(data) {
-      if (data.row.section !== 'body' || data.column.index !== colorColumn) return;
+      if (
+        data.row.section !== 'body' ||
+        data.column.index !== colorColumn
+      ) {
+        return;
+      }
+
       const rgb = reportColorRgb(data.cell.raw);
-      const size = Math.min(3.2, Math.max(2.2, data.cell.height - 1.8));
-      const y = data.cell.y + (data.cell.height - size) / 2;
+
+      const size = Math.min(
+        layout.swatchSize,
+        Math.max(2, data.cell.height - 2)
+      );
+
+      const y =
+        data.cell.y +
+        (data.cell.height - size) / 2;
+
       pdf.setFillColor(...rgb);
       pdf.setDrawColor(148, 163, 184);
       pdf.setLineWidth(0.2);
-      pdf.rect(data.cell.x + 1.8, y, size, size, 'FD');
+
+      pdf.rect(
+        data.cell.x + 1.8,
+        y,
+        size,
+        size,
+        'FD'
+      );
     }
   });
 
@@ -883,85 +1073,231 @@ function drawDailyTable(pdf, title, startY, head, rows, colorColumn, density) {
 }
 
 function exportDailyPdf(date) {
-  const records = state.records.filter((r) => r.date === date);
-  if (!records.length) throw new Error('No production records exist for the selected date.');
+  const records = state.records.filter(
+    (record) => record.date === date
+  );
+
+  if (!records.length) {
+    throw new Error(
+      'No production records exist for the selected date.'
+    );
+  }
+
   const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  const pdf = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4'
+  });
+
   const totals = productionBreakdown(records);
 
   pdf.setFillColor(37, 99, 235);
   pdf.rect(14, 10, 182, 29, 'F');
+
   pdf.setFillColor(147, 197, 253);
   pdf.rect(14, 10, 2.6, 29, 'F');
+
   pdf.setTextColor(255, 255, 255);
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(8.2);
   pdf.text('COMPOUNDING SECTION', 21, 18);
+
   pdf.setFontSize(17.2);
   pdf.text('Daily Production Report', 21, 28);
+
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(8.2);
-  pdf.text(`Production Date: ${productionDateLabel(date)}`, 21, 35);
 
-  drawDailyKpi(pdf, 14, 44, 89, 'Total Production', formatKg(totals.total));
-  drawDailyKpi(pdf, 107, 44, 89, 'Mixer Production', formatKg(totals.mixer));
-  drawDailyKpi(pdf, 14, 64, 89, 'Pelletizer Production', formatKg(totals.pelletizer));
-  drawDailyKpi(pdf, 107, 64, 89, 'Production Records', String(records.length));
+  pdf.text(
+    `Production Date: ${productionDateLabel(date)}`,
+    21,
+    35
+  );
 
-  const mixerRecords = records.filter((record) => record.type === 'Mixer');
-  const pelletizerRecords = records.filter((record) => record.type === 'Pelletizer');
+  drawDailyKpi(
+    pdf,
+    14,
+    44,
+    89,
+    'Total Production',
+    formatKg(totals.total)
+  );
+
+  drawDailyKpi(
+    pdf,
+    107,
+    44,
+    89,
+    'Mixer Production',
+    formatKg(totals.mixer)
+  );
+
+  drawDailyKpi(
+    pdf,
+    14,
+    64,
+    89,
+    'Pelletizer Production',
+    formatKg(totals.pelletizer)
+  );
+
+  drawDailyKpi(
+    pdf,
+    107,
+    64,
+    89,
+    'Production Records',
+    String(records.length)
+  );
+
+  const mixerRecords = records.filter(
+    (record) => record.type === 'Mixer'
+  );
+
+  const pelletizerRecords = records.filter(
+    (record) => record.type === 'Pelletizer'
+  );
+
   const density = records.length;
+  const layout = dailyReportLayout(density);
+
   const mixerRows = mixerRecords.map((record) => [
     record.shift,
     recordEquipmentName(record),
     record.mixCode || '',
     record.mixName || '',
     record.color || '',
-    round2(record.quantityKg).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    round2(record.quantityKg).toLocaleString(
+      undefined,
+      {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }
+    )
   ]);
-  const pelletizerRows = pelletizerRecords.map((record) => [
-    record.shift,
-    recordEquipmentName(record),
-    record.application || '',
-    record.color || '',
-    round2(record.quantityKg).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  ]);
+
+  const pelletizerRows = pelletizerRecords.map(
+    (record) => [
+      record.shift,
+      recordEquipmentName(record),
+      record.application || '',
+      record.color || '',
+      round2(record.quantityKg).toLocaleString(
+        undefined,
+        {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }
+      )
+    ]
+  );
 
   let y = drawDailyTable(
     pdf,
     'Mixer Production',
     89,
-    ['Shift', 'Mixer', 'Mix Code', 'Mix Name', 'Color', 'Production (kg)'],
+    [
+      'Shift',
+      'Mixer',
+      'Mix Code',
+      'Mix Name',
+      'Color',
+      'Production (kg)'
+    ],
     mixerRows,
     4,
     density
   );
+
   y = drawDailyTable(
     pdf,
     'Pelletizer Production',
-    y + (density > 20 ? 4 : 7),
-    ['Shift', 'Pelletizer', 'Pellet Application', 'Color', 'Production (kg)'],
+    y + layout.sectionGap,
+    [
+      'Shift',
+      'Pelletizer',
+      'Pellet Application',
+      'Color',
+      'Production (kg)'
+    ],
     pelletizerRows,
     3,
     density
   );
 
-  const morningTotal = records.filter((record) => record.shift === 'Morning').reduce((sum, record) => sum + Number(record.quantityKg || 0), 0);
-  const nightTotal = records.filter((record) => record.shift === 'Night').reduce((sum, record) => sum + Number(record.quantityKg || 0), 0);
-  const summaryY = Math.min(276, y + (density > 20 ? 3 : 5));
+  const morningTotal = records
+    .filter(
+      (record) => record.shift === 'Morning'
+    )
+    .reduce(
+      (sum, record) =>
+        sum + Number(record.quantityKg || 0),
+      0
+    );
+
+  const nightTotal = records
+    .filter(
+      (record) => record.shift === 'Night'
+    )
+    .reduce(
+      (sum, record) =>
+        sum + Number(record.quantityKg || 0),
+      0
+    );
+
+  const summaryY = Math.min(
+    276,
+    y + layout.summaryGap
+  );
+
   pdf.setFillColor(235, 243, 254);
-  pdf.rect(14, summaryY, 182, 12, 'F');
+
+  pdf.rect(
+    14,
+    summaryY,
+    182,
+    layout.summaryHeight,
+    'F'
+  );
+
   pdf.setTextColor(28, 67, 121);
   pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(8);
-  pdf.text(`Morning Total: ${formatKg(morningTotal)}`, 20, summaryY + 7.5);
-  pdf.text(`Night Total: ${formatKg(nightTotal)}`, 190, summaryY + 7.5, { align: 'right' });
+  pdf.setFontSize(layout.summaryFontSize);
+
+  const summaryTextY =
+    summaryY +
+    layout.summaryHeight / 2 +
+    layout.summaryFontSize / 7;
+
+  pdf.text(
+    `Morning Total: ${formatKg(morningTotal)}`,
+    20,
+    summaryTextY
+  );
+
+  pdf.text(
+    `Night Total: ${formatKg(nightTotal)}`,
+    190,
+    summaryTextY,
+    { align: 'right' }
+  );
 
   pdf.setTextColor(100, 116, 139);
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(6.5);
-  pdf.text('Page 1 of 1', 196, 291, { align: 'right' });
-  pdf.save(`daily-production-${date}.pdf`);
+
+  pdf.text(
+    'Page 1 of 1',
+    196,
+    291,
+    { align: 'right' }
+  );
+
+  pdf.save(
+    `daily-production-${date}.pdf`
+  );
 }
 
 function exportMonthlyPdf(month) {
