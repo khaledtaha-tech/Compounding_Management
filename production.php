@@ -457,6 +457,6 @@
   <script src="vendor/jspdf.umd.min.js"></script>
   <script src="vendor/jspdf.plugin.autotable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="production.js"></script>
+  <script src="production.js?v=4.0.0"></script>
 </body>
 </html>

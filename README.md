@@ -10,6 +10,8 @@ Unified PHP/MySQL application for Hostinger.
 - Complete Excel backup and restore
 - Production Code (MP/MF) linked to Recipe Code (KH)
 - Mixer entry uses the saved recipe list and fills code, name, and color automatically
+- One-page A4 portrait daily report with separate Mixer and Pelletizer sections, visual product colors, weekday, KPI totals, and shift totals
+- Raw-material Excel imports match by both Material Name and Grade / Trade Name
 - Local email/password login (no Firebase, Supabase, or Render)
 
 ## Install

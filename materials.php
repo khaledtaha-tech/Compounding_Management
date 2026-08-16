@@ -1120,7 +1120,9 @@ function importRawMaterialsFromRows(rows){
       company:companyKey?String(row[companyKey]??"").trim():"",
       stockKg:stockKey?parseKgInput(row[stockKey]):0
     };
-    const existingIndex=state.rawMaterials.findIndex(m=>norm(m.material)===norm(material));
+    const existingIndex=state.rawMaterials.findIndex(m=>
+      norm(m.material)===norm(material)&&norm(m.grade)===norm(incoming.grade)
+    );
     if(existingIndex>=0){
       state.rawMaterials[existingIndex]={...state.rawMaterials[existingIndex],...incoming,id:state.rawMaterials[existingIndex].id||makeMaterialId()};
       replaced++;
