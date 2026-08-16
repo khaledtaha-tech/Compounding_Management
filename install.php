@@ -30,6 +30,7 @@ try {
         equipment_id VARCHAR(80) NULL,
         equipment_name VARCHAR(100) NOT NULL,
         mix_code VARCHAR(80) NULL,
+        recipe_code VARCHAR(80) NULL,
         mix_name VARCHAR(190) NULL,
         pellet_application VARCHAR(190) NULL,
         color VARCHAR(100) NOT NULL,
@@ -39,6 +40,10 @@ try {
         INDEX idx_production_user_date (user_id, production_date),
         CONSTRAINT fk_production_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    $recipeCodeColumn = $pdo->query("SHOW COLUMNS FROM production_records LIKE 'recipe_code'")->fetch();
+    if (!$recipeCodeColumn) {
+        $pdo->exec("ALTER TABLE production_records ADD COLUMN recipe_code VARCHAR(80) NULL AFTER mix_code");
+    }
     $pdo->exec("CREATE TABLE IF NOT EXISTS material_states (
         user_id INT UNSIGNED PRIMARY KEY,
         state_json LONGTEXT NOT NULL,
@@ -72,4 +77,3 @@ try {
 <?php if ($message): ?><div class="alert success"><?= htmlspecialchars($message) ?></div><a class="primary-link" href="login.php">Open Login</a><?php endif; ?>
 <?php if (!$message && !$error && $count === 0): ?><form method="post" class="auth-form"><label>Email<input type="email" name="email" required></label><label>Password<input type="password" name="password" minlength="8" required></label><label>Confirm Password<input type="password" name="confirm" minlength="8" required></label><button type="submit">Install & Create Account</button></form><?php endif; ?>
 </main></body></html>
-

@@ -268,14 +268,27 @@
                   </div>
                 </label>
 
-                <label>
-                  <span>Mix Code</span>
-                  <input id="mixCode" type="text" list="mixCodeHistory" placeholder="e.g. M-101" autocomplete="off" />
+                <label class="full-width">
+                  <span>Mix / Recipe</span>
+                  <select id="recipeSelect" required>
+                    <option value="">Choose a production mix</option>
+                  </select>
+                  <small class="field-help">The list comes directly from Materials & Recipes.</small>
                 </label>
 
                 <label>
+                  <span>Production Code</span>
+                  <input id="mixCode" class="readonly-field" type="text" readonly placeholder="MP-01 / MF-01" />
+                </label>
+
+                <label>
+                  <span>Recipe Code</span>
+                  <input id="recipeCode" class="readonly-field" type="text" readonly placeholder="KH-600" />
+                </label>
+
+                <label class="full-width">
                   <span>Mix Name</span>
-                  <input id="mixName" type="text" list="mixNameHistory" placeholder="e.g. White Injection Mix" autocomplete="off" />
+                  <input id="mixName" class="readonly-field" type="text" readonly placeholder="Selected recipe name" />
                 </label>
               </div>
 
@@ -305,8 +318,6 @@
               </label>
             </div>
 
-            <datalist id="mixCodeHistory"></datalist>
-            <datalist id="mixNameHistory"></datalist>
             <datalist id="applicationHistory"></datalist>
             <datalist id="colorHistory"></datalist>
 

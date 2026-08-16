@@ -78,8 +78,9 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
 .recipe-tabs button{border:1px solid var(--line);background:#fff;padding:9px 12px;border-radius:9px;font-weight:700;cursor:pointer}
 .recipe-tabs button.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 .formgrid{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:14px}
-.recipe-identity-grid{display:grid;grid-template-columns:180px minmax(320px,2fr) minmax(220px,1fr);gap:12px;margin-bottom:14px}
+.recipe-identity-grid{display:grid;grid-template-columns:180px 150px minmax(280px,2fr) minmax(150px,1fr) minmax(130px,.8fr);gap:12px;margin-bottom:14px}
 .recipe-code-input{text-transform:uppercase;font-weight:800;letter-spacing:.5px;background:#f8fbff}
+.production-code-input{text-transform:uppercase;font-weight:900;letter-spacing:.5px;background:#eef4ff;color:var(--primary)}
 .recipe-code-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
 .recipe-code-row .btn{height:39px;white-space:nowrap}
 .recipe-code-badge{display:inline-flex;align-items:center;padding:4px 8px;border-radius:8px;background:#eaf1ff;color:var(--primary);font-size:10px;font-weight:800;letter-spacing:.4px;margin-right:7px}
@@ -120,7 +121,8 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
 .import-option.materials{background:#eaf8f2;color:var(--success)}
 .import-option.both{background:#fff4df;color:var(--warning)}
 .import-cancel{margin-top:10px;background:#eef3f8;color:#526176}
-@media(max-width:1250px){.grid{grid-template-columns:1fr 340px}.recipe-select-card{grid-template-columns:28px 1fr 170px 120px}}
+@media(max-width:1250px){.grid{grid-template-columns:1fr 340px}.recipe-select-card{grid-template-columns:28px 1fr 170px 120px}.recipe-identity-grid{grid-template-columns:180px 150px 1fr}}
+@media(max-width:760px){.recipe-identity-grid,.formgrid{grid-template-columns:1fr}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="vendor/jspdf.umd.min.js"></script>
@@ -230,12 +232,20 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
         </div>
       </div>
       <div>
+        <div class="label">Production Code</div>
+        <input id="productionCode" class="production-code-input" placeholder="MP-01 / MF-01" maxlength="20">
+      </div>
+      <div>
         <div class="label">Recipe Name</div>
         <input id="recipeName">
       </div>
       <div>
         <div class="label">Recipe Category</div>
         <input id="recipeCategory" placeholder="Example: Pressure Pipe">
+      </div>
+      <div>
+        <div class="label">Color</div>
+        <input id="recipeColor" placeholder="Example: Grey">
       </div>
     </div>
 
@@ -377,8 +387,10 @@ const defaults = {
   recipes:[
     {
       code:"KH-120",
+      productionCode:"MF-01",
       name:"Orange PVC Fitting",
       category:"Fitting",
+      color:"Orange",
       pvcBase:250,
       selected:true,
       dailyProduction:3000,
@@ -433,8 +445,10 @@ function stableStateFromCloud(payload){
   if(payload.recipes){
     const recipes=payload.recipes.map((r,idx)=>({
       code:(r.code ?? r.recipeCode ?? "").trim().toUpperCase(),
+      productionCode:normalizedProductionCode(r.productionCode ?? r.mixCode ?? ""),
       name:r.name||`Recipe ${idx+1}`,
       category:r.category||"General",
+      color:String(r.color||inferRecipeColor(r.name||"")).trim(),
       pvcBase:Number(r.pvcBase ?? r.actualResinKg)||100,
       selected:Array.isArray(payload.selectedRecipeIds)?payload.selectedRecipeIds.includes(r.id):idx===0,
       dailyProduction:Number((payload.recipeDailyProds||{})[r.id] ?? r.dailyProduction ?? r.expectedDailyProductionKg)||0,
@@ -534,17 +548,52 @@ function makeMaterialId(){
   return "rm-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8);
 }
 
+function normalizedProductionCode(value){
+  const text=String(value||"").trim().toUpperCase().replace(/\s+/g,"");
+  const match=text.match(/^(MP|MF)-?(\d+)$/);
+  return match?`${match[1]}-${String(Number(match[2])).padStart(2,"0")}`:text;
+}
+function embeddedProductionCode(name){
+  const match=String(name||"").match(/(?:^|[\s,;-])(MP|MF)\s*-\s*(\d+)(?=$|[\s,;.-])/i);
+  return match?normalizedProductionCode(`${match[1]}-${match[2]}`):"";
+}
+function cleanRecipeName(name){
+  return String(name||"")
+    .replace(/([\s,;-])(MP|MF)\s*-\s*\d+(?=$|[\s,;.-])/ig,"")
+    .replace(/\s+,/g,",")
+    .replace(/,{2,}/g,",")
+    .replace(/[\s,;-]+$/g,"")
+    .replace(/\s{2,}/g," ")
+    .trim();
+}
+function inferRecipeColor(name){
+  const text=String(name||"").toLowerCase();
+  if(text.includes("orange"))return "Orange";
+  if(text.includes("white"))return "White";
+  if(text.includes("black"))return "Black";
+  if(text.includes("grey")||text.includes("gray"))return "Grey";
+  return "";
+}
+
 function migrateState(){
-  state.recipes=(state.recipes||[]).map(r=>({
-    ...r,
-    code:String(r.code ?? r.recipeCode ?? "").trim().toUpperCase(),
-    ingredients:(r.ingredients||[]).map(i=>({
-      ...i,
-      material:itemMaterial(i),
-      grade:itemGrade(i),
-      kg:Number(i.kg)||0
-    }))
-  }));
+  state.recipes=(state.recipes||[]).map(r=>{
+    const originalName=String(r.name||"").trim();
+    const productionCode=normalizedProductionCode(r.productionCode||embeddedProductionCode(originalName));
+    const name=productionCode?cleanRecipeName(originalName):originalName;
+    return {
+      ...r,
+      code:String(r.code ?? r.recipeCode ?? "").trim().toUpperCase(),
+      productionCode,
+      name,
+      color:String(r.color||inferRecipeColor(name)).trim(),
+      ingredients:(r.ingredients||[]).map(i=>({
+        ...i,
+        material:itemMaterial(i),
+        grade:itemGrade(i),
+        kg:Number(i.kg)||0
+      }))
+    };
+  });
   state.stocks=(state.stocks||[]).map(s=>({
     ...s,
     material:itemMaterial(s),
@@ -597,7 +646,7 @@ function renderDashboard(){
     d.className="recipe-select-card"+(r.selected?" selected":"");
     d.innerHTML=`
       <input class="check" type="checkbox" ${r.selected?"checked":""}>
-      <div><h3>${r.code?`<span class="recipe-code-badge">${esc(r.code)}</span>`:""}${esc(r.name)}</h3><p>${r.ingredients.length} ingredients · Total batch ${fmt(total(r))} kg</p></div>
+      <div><h3>${r.productionCode?`<span class="recipe-code-badge">${esc(r.productionCode)}</span>`:""}${r.code?`<span class="recipe-code-badge">${esc(r.code)}</span>`:""}${esc(r.name)}</h3><p>${r.ingredients.length} ingredients · Total batch ${fmt(total(r))} kg</p></div>
       <div><div class="label">Daily Production (kg/day)</div><input type="number" min="0" step="1" value="${r.dailyProduction||0}"></div>
       <div><div class="label">Material Consumption</div><button class="btn soft full">View Recipe</button></div>`;
     d.querySelector(".check").addEventListener("change",e=>{r.selected=e.target.checked;save();renderDashboard()});
@@ -789,8 +838,10 @@ function renderRecipes(){
   if(!state.recipes.length){
     state.recipes.push({
       code:"",
+      productionCode:"",
       name:"New PVC Recipe",
       category:"General",
+      color:"",
       pvcBase:100,
       selected:false,
       dailyProduction:0,
@@ -803,7 +854,7 @@ function renderRecipes(){
   }
 
   if(state.activeRecipe<0||state.activeRecipe>=state.recipes.length)state.activeRecipe=0;
-  state.recipes.forEach(r=>{if(!r.category)r.category="General";if(r.code==null)r.code=""});
+  state.recipes.forEach(r=>{if(!r.category)r.category="General";if(r.code==null)r.code="";if(r.productionCode==null)r.productionCode="";if(r.color==null)r.color=""});
 
   const search=(document.getElementById("recipeSearch").value||"").trim().toLowerCase();
   const selectedCategory=document.getElementById("recipeCategoryFilter").value||"";
@@ -818,7 +869,7 @@ function renderRecipes(){
     state.recipes.length+" Recipe"+(state.recipes.length===1?"":"s");
 
   const matches=state.recipes.map((r,i)=>({r,i})).filter(({r})=>{
-    const text=((r.code||"")+" "+(r.name||"")+" "+(r.category||"")).toLowerCase();
+    const text=((r.productionCode||"")+" "+(r.code||"")+" "+(r.name||"")+" "+(r.category||"")+" "+(r.color||"")).toLowerCase();
     return(!search||text.includes(search))&&(!selectedCategory||(r.category||"General")===selectedCategory);
   });
 
@@ -832,15 +883,17 @@ function renderRecipes(){
   matches.forEach(({r,i})=>{
     const option=document.createElement("option");
     option.value=i;
-    option.textContent=(r.code?"["+r.code+"] ":"")+r.name+" — "+(r.category||"General");
+    option.textContent=(r.productionCode?"["+r.productionCode+"] ":"")+(r.code?"["+r.code+"] ":"")+r.name+" — "+(r.category||"General");
     selector.appendChild(option);
   });
   selector.value=String(state.activeRecipe);
 
   const r=state.recipes[state.activeRecipe];
   document.getElementById("recipeCode").value=r.code||"";
+  document.getElementById("productionCode").value=r.productionCode||"";
   document.getElementById("recipeName").value=r.name||"";
   document.getElementById("recipeCategory").value=r.category||"General";
+  document.getElementById("recipeColor").value=r.color||"";
   document.getElementById("pvcBase").value=inputNumber(r.pvcBase||0);
   document.getElementById("ingredientsCount").value=r.ingredients.length;
 
@@ -942,8 +995,10 @@ function importRecipesFromRows(rows,showMessage=true){
     return null;
   }
   const codeKey=findKey(["Recipe Code","Code","Mix Code","Formula Code"]);
+  const productionCodeKey=findKey(["Production Code","Production Mix Code","MP/MF Code","Operational Code"]);
   const recipeKey=findKey(["Recipe Name","Recipe"]);
   const categoryKey=findKey(["Recipe Category","Category"]);
+  const colorKey=findKey(["Color","Recipe Color","Mix Color"]);
   const pvcBaseKey=findKey(["Actual PVC Resin in Batch (kg)","PVC Resin Base (kg)","PVC Resin Base","PVC Base"]);
   const dailyKey=findKey(["Daily Production (kg/day)","Daily Production","Production kg/day"]);
   const materialKey=findKey(["Material","Ingredient","Raw Material"]);
@@ -958,11 +1013,17 @@ function importRecipesFromRows(rows,showMessage=true){
     const material=materialKey?String(row[materialKey]??"").trim():"";
     const grade=gradeKey?String(row[gradeKey]??"").trim():"";
     if(!recipeName || (!material && !grade)) return;
-    if(!grouped.has(recipeName)){
-      grouped.set(recipeName,{
-        code:codeKey?String(row[codeKey]??"").trim().toUpperCase():"",
-        name:recipeName,
+    const incomingRecipeCode=codeKey?String(row[codeKey]??"").trim().toUpperCase():"";
+    const incomingProductionCode=normalizedProductionCode(productionCodeKey?row[productionCodeKey]:embeddedProductionCode(recipeName));
+    const cleanName=incomingProductionCode?cleanRecipeName(recipeName):recipeName;
+    const groupKey=incomingRecipeCode?`recipe:${incomingRecipeCode}`:(incomingProductionCode?`production:${incomingProductionCode}`:`name:${cleanName.toLowerCase()}`);
+    if(!grouped.has(groupKey)){
+      grouped.set(groupKey,{
+        code:incomingRecipeCode,
+        productionCode:incomingProductionCode,
+        name:cleanName,
         category:categoryKey?String(row[categoryKey]??"General").trim()||"General":"General",
+        color:colorKey?String(row[colorKey]??"").trim():inferRecipeColor(cleanName),
         pvcBase:pvcBaseKey?Number(row[pvcBaseKey])||0:0,
         dailyProduction:dailyKey?Number(row[dailyKey])||0:0,
         selected:false,
@@ -970,10 +1031,10 @@ function importRecipesFromRows(rows,showMessage=true){
       });
     }
     const ingredientKg=Number(row[kgKey])||0;
-    grouped.get(recipeName).ingredients.push({material,grade,kg:ingredientKg});
+    grouped.get(groupKey).ingredients.push({material,grade,kg:ingredientKg});
     const resinText=(material+" "+grade).toLowerCase();
     const looksLikeResin=resinText.includes("pvc")||resinText.includes("resin")||resinText.includes("k57")||resinText.includes("k-57")||resinText.includes("k67")||resinText.includes("k-67");
-    if(looksLikeResin && ingredientKg>0) grouped.get(recipeName).pvcBase=ingredientKg;
+    if(looksLikeResin && ingredientKg>0) grouped.get(groupKey).pvcBase=ingredientKg;
   });
   const imported=[...grouped.values()].filter(r=>r.ingredients.length);
   imported.forEach(r=>{
@@ -986,18 +1047,28 @@ function importRecipesFromRows(rows,showMessage=true){
     }
   });
   if(!imported.length) throw new Error("No valid recipe rows were found.");
-  let added=0,skipped=0;
+  let added=0,updated=0;
   const firstNewRecipeIndex=state.recipes.length;
 
   imported.forEach(recipe=>{
-    const existingIndex=state.recipes.findIndex(
-      r=>(r.name||"").trim().toLowerCase()===recipe.name.trim().toLowerCase()
+    const existingIndex=state.recipes.findIndex(r=>
+      (recipe.code&&String(r.code||"").trim().toUpperCase()===recipe.code)
+      ||(!recipe.code&&recipe.productionCode&&normalizedProductionCode(r.productionCode)===recipe.productionCode)
+      ||(!recipe.code&&!recipe.productionCode&&(r.name||"").trim().toLowerCase()===recipe.name.trim().toLowerCase())
     );
 
-    // Existing recipe names are preserved exactly as they are in the app.
-    // This protects the generated Recipe Code and all existing recipe data.
     if(existingIndex>=0){
-      skipped++;
+      const current=state.recipes[existingIndex];
+      state.recipes[existingIndex]={
+        ...current,
+        ...recipe,
+        code:recipe.code||current.code||"",
+        productionCode:recipe.productionCode||current.productionCode||"",
+        color:recipe.color||current.color||inferRecipeColor(recipe.name),
+        selected:current.selected??recipe.selected,
+        dailyProduction:recipe.dailyProduction||current.dailyProduction||0
+      };
+      updated++;
       return;
     }
 
@@ -1013,10 +1084,10 @@ function importRecipesFromRows(rows,showMessage=true){
   renderDashboard();
 
   if(showMessage){
-    alert(`Recipes import completed.\nAdded: ${added}\nSkipped existing: ${skipped}`);
+    alert(`Recipes import completed.\nAdded: ${added}\nUpdated: ${updated}`);
   }
 
-  return {added,skipped};
+  return {added,updated};
 }
 
 function importRawMaterialsFromRows(rows){
@@ -1105,7 +1176,7 @@ async function handleExcelImport(file,importType){
     renderRawMaterials();
     renderRecipes();
     renderDashboard();
-    alert(`Combined import completed.\n\nRecipes added: ${recipeResult.added}\nRecipes skipped existing: ${recipeResult.skipped}\nRaw materials added: ${rawResult.added}\nRaw materials updated from Excel: ${rawResult.replaced}\n\nExisting recipes and their Recipe Codes were kept unchanged.\nExisting raw materials not present in Excel were kept.`);
+    alert(`Combined import completed.\n\nRecipes added: ${recipeResult.added}\nRecipes updated: ${recipeResult.updated}\nRaw materials added: ${rawResult.added}\nRaw materials updated from Excel: ${rawResult.replaced}\n\nExisting raw materials not present in Excel were kept.`);
     return;
   }
 
@@ -1118,13 +1189,13 @@ function downloadExcelTemplate(){
     return;
   }
   const data=[
-    ["Recipe Code","Recipe Name","Recipe Category","Actual PVC Resin in Batch (kg)","Daily Production (kg/day)","Material","Grade / Trade Name","Actual kg / Batch"],
-    ["KH-120","Orange PVC Fitting","Fitting",250,3000,"PVC Resin","PVC K-57",250],
-    ["KH-120","Orange PVC Fitting","Fitting",250,3000,"Calcium Carbonate","",7.5],
-    ["KH-120","Orange PVC Fitting","Fitting",250,3000,"Stabilizer","SAG-1015",13.75]
+    ["Recipe Code","Production Code","Recipe Name","Recipe Category","Color","Actual PVC Resin in Batch (kg)","Daily Production (kg/day)","Material","Grade / Trade Name","Actual kg / Batch"],
+    ["KH-120","MF-01","Orange PVC Fitting","Fitting","Orange",250,3000,"PVC Resin","PVC K-57",250],
+    ["KH-120","MF-01","Orange PVC Fitting","Fitting","Orange",250,3000,"Calcium Carbonate","",7.5],
+    ["KH-120","MF-01","Orange PVC Fitting","Fitting","Orange",250,3000,"Stabilizer","SAG-1015",13.75]
   ];
   const sheet=XLSX.utils.aoa_to_sheet(data);
-  sheet["!cols"]=[{wch:16},{wch:24},{wch:18},{wch:30},{wch:26},{wch:24},{wch:24},{wch:18}];
+  sheet["!cols"]=[{wch:16},{wch:18},{wch:28},{wch:18},{wch:14},{wch:30},{wch:26},{wch:24},{wch:24},{wch:18}];
   const workbook=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook,sheet,"Recipes Import");
   const rawData=[
@@ -1142,8 +1213,8 @@ function exportCompleteBackup(){
   if(typeof XLSX==="undefined"){alert("Excel library could not be loaded.");return}
   const wb=XLSX.utils.book_new();
   const keys=state.recipes.map((_,i)=>`R${String(i+1).padStart(4,"0")}`);
-  const info=[{Field:"Backup Type",Value:"Material Planner Complete Backup"},{Field:"Backup Version",Value:1},{Field:"Exported At",Value:new Date().toISOString()},{Field:"Active Recipe Index",Value:state.activeRecipe||0}];
-  const recipes=state.recipes.map((r,i)=>({"Recipe Key":keys[i],"Recipe Code":r.code||"","Recipe Name":r.name||"","Category":r.category||"General","PVC Resin Base (kg)":Number(r.pvcBase)||0,"Selected":r.selected?"Yes":"No","Daily Production (kg/day)":Number(r.dailyProduction)||0}));
+  const info=[{Field:"Backup Type",Value:"Material Planner Complete Backup"},{Field:"Backup Version",Value:2},{Field:"Exported At",Value:new Date().toISOString()},{Field:"Active Recipe Index",Value:state.activeRecipe||0}];
+  const recipes=state.recipes.map((r,i)=>({"Recipe Key":keys[i],"Recipe Code":r.code||"","Production Code":r.productionCode||"","Recipe Name":r.name||"","Category":r.category||"General","Color":r.color||"","PVC Resin Base (kg)":Number(r.pvcBase)||0,"Selected":r.selected?"Yes":"No","Daily Production (kg/day)":Number(r.dailyProduction)||0}));
   const ingredients=[];
   state.recipes.forEach((r,i)=>(r.ingredients||[]).forEach((item,line)=>ingredients.push({"Recipe Key":keys[i],"Line No":line+1,"Material":itemMaterial(item),"Grade / Trade Name":itemGrade(item),"Actual kg / Batch":Number(item.kg)||0})));
   const materials=(state.rawMaterials||[]).map(m=>({"Material ID":m.id||makeMaterialId(),"Material Name":itemMaterial(m),"Grade / Trade Name":itemGrade(m),"Country":m.country||"","Company":m.company||"","Stock (kg)":Number(m.stockKg)||0}));
@@ -1165,7 +1236,7 @@ async function importCompleteBackup(file){
     ingredientMap.get(key).push({line:Number(row["Line No"])||0,material:String(row.Material||""),grade:String(row["Grade / Trade Name"]||""),kg:Number(row["Actual kg / Batch"])||0});
   });
   const recipes=recipeRows.map((row,index)=>({
-    code:String(row["Recipe Code"]||"").trim().toUpperCase(),name:String(row["Recipe Name"]||`Recipe ${index+1}`),category:String(row.Category||"General"),
+    code:String(row["Recipe Code"]||"").trim().toUpperCase(),productionCode:normalizedProductionCode(row["Production Code"]||""),name:String(row["Recipe Name"]||`Recipe ${index+1}`),category:String(row.Category||"General"),color:String(row.Color||inferRecipeColor(row["Recipe Name"]||"")),
     pvcBase:Number(row["PVC Resin Base (kg)"])||100,selected:String(row.Selected||"").toLowerCase()==="yes",dailyProduction:Number(row["Daily Production (kg/day)"])||0,
     ingredients:(ingredientMap.get(String(row["Recipe Key"]||""))||[]).sort((a,b)=>a.line-b.line).map(({material,grade,kg})=>({material,grade,kg}))
   })).filter(r=>r.ingredients.length);
@@ -1209,8 +1280,10 @@ function generateUnusedRecipeCode(){
 function createNewRecipe(){
   state.recipes.push({
     code:"",
+    productionCode:"",
     name:"New PVC Recipe "+(state.recipes.length+1),
     category:"General",
+    color:"",
     pvcBase:100,
     selected:false,
     dailyProduction:0,
@@ -1229,6 +1302,7 @@ function createNewRecipe(){
 function duplicateActiveRecipe(){
   const copy=JSON.parse(JSON.stringify(state.recipes[state.activeRecipe]));
   copy.code="";
+  copy.productionCode="";
   copy.name=(copy.name||"Recipe")+" - Copy";
   copy.selected=false;
   state.recipes.push(copy);
@@ -1276,7 +1350,7 @@ function openExportDialog(){
     row.innerHTML=`
       <input class="export-recipe-check" type="checkbox" value="${index}" ${index===state.activeRecipe?"checked":""}>
       <div>
-        <div class="export-recipe-title">${recipe.code?`<span class="recipe-code-badge">${esc(recipe.code)}</span>`:""}${esc(recipe.name||"Unnamed Recipe")}</div>
+        <div class="export-recipe-title">${recipe.productionCode?`<span class="recipe-code-badge">${esc(recipe.productionCode)}</span>`:""}${recipe.code?`<span class="recipe-code-badge">${esc(recipe.code)}</span>`:""}${esc(recipe.name||"Unnamed Recipe")}</div>
         <div class="export-recipe-meta">${esc(recipe.category||"General")} · ${(recipe.ingredients||[]).length} ingredients</div>
       </div>
       <div class="export-recipe-total">${fmt(batchWeight,2)} kg</div>`;
@@ -1348,10 +1422,11 @@ function drawRecipePdfPage(doc,recipe){
   doc.setDrawColor(223,231,241);
   doc.roundedRect(18,43,pageWidth-36,20,2.5,2.5,"FD");
   const metadata=[
-    {x:22,label:"RECIPE CODE",value:recipe.code||"-",width:38},
-    {x:64,label:"CATEGORY",value:recipe.category||"General",width:47},
-    {x:115,label:"PVC RESIN BASE",value:pdfNumber(recipe.pvcBase,2)+" kg",width:39},
-    {x:158,label:"INGREDIENTS",value:String((recipe.ingredients||[]).length),width:30}
+    {x:22,label:"PRODUCTION CODE",value:recipe.productionCode||"-",width:29},
+    {x:54,label:"RECIPE CODE",value:recipe.code||"-",width:27},
+    {x:84,label:"CATEGORY",value:recipe.category||"General",width:28},
+    {x:115,label:"COLOR",value:recipe.color||"-",width:29},
+    {x:147,label:"PVC RESIN BASE",value:pdfNumber(recipe.pvcBase,2)+" kg",width:39}
   ];
   metadata.forEach(item=>{
     doc.setFont("helvetica","bold");
@@ -1546,12 +1621,36 @@ document.getElementById("recipeCode").onblur=e=>{
   state.recipes[state.activeRecipe].code=code;save();renderRecipes();renderDashboard();
 };
 
+document.getElementById("productionCode").oninput=e=>{
+  const value=e.target.value.toUpperCase().replace(/\s+/g,"");
+  e.target.value=value;
+  state.recipes[state.activeRecipe].productionCode=value;
+  save();
+};
+document.getElementById("productionCode").onblur=e=>{
+  const code=normalizedProductionCode(e.target.value);
+  if(code&&!/^(MP|MF)-\d{2,}$/.test(code)){
+    alert("Production Code must use MP-01 for Pipe or MF-01 for Fitting.");
+    e.target.focus();
+    return;
+  }
+  const duplicate=state.recipes.some((r,i)=>i!==state.activeRecipe&&code&&normalizedProductionCode(r.productionCode)===code);
+  if(duplicate){alert("This production code is already used. Please enter a unique code.");e.target.focus();return}
+  state.recipes[state.activeRecipe].productionCode=code;
+  e.target.value=code;
+  save();renderRecipes();renderDashboard();
+};
+
 document.getElementById("recipeName").oninput=e=>{
   state.recipes[state.activeRecipe].name=e.target.value;
   save();
 };
 document.getElementById("recipeCategory").oninput=e=>{
   state.recipes[state.activeRecipe].category=e.target.value;
+  save();
+};
+document.getElementById("recipeColor").oninput=e=>{
+  state.recipes[state.activeRecipe].color=e.target.value;
   save();
 };
 document.getElementById("pvcBase").oninput=e=>{

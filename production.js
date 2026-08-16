@@ -113,10 +113,109 @@ function fillHistoryList(id, values) {
 
 function renderHistorySuggestions() {
   const unique = (values) => [...new Map(values.filter(Boolean).map((value) => [String(value).trim().toLowerCase(), String(value).trim()])).values()];
-  fillHistoryList('mixCodeHistory', unique([...historyValues((r) => r.type === 'Mixer' ? r.mixCode : ''), ...state.recipes.map((r) => r.code)]));
-  fillHistoryList('mixNameHistory', unique([...historyValues((r) => r.type === 'Mixer' ? r.mixName : ''), ...state.recipes.map((r) => r.name)]));
   fillHistoryList('applicationHistory', historyValues((r) => r.type === 'Pelletizer' ? r.application : ''));
-  fillHistoryList('colorHistory', historyValues((r) => r.color));
+  fillHistoryList('colorHistory', unique([...historyValues((r) => r.color), ...state.recipes.map((r) => recipeColor(r))]));
+}
+
+function normalizedCode(value) {
+  return String(value || '').trim().toUpperCase().replace(/\s+/g, '');
+}
+
+function productionCodeForRecipe(recipe) {
+  const stored = normalizedCode(recipe?.productionCode);
+  if (stored) return stored;
+  const match = String(recipe?.name || '').match(/(?:^|[\s,;-])(MP|MF)\s*-\s*(\d+)(?=$|[\s,;.-])/i);
+  return match ? `${match[1].toUpperCase()}-${String(Number(match[2])).padStart(2, '0')}` : '';
+}
+
+function productionNameForRecipe(recipe) {
+  return String(recipe?.name || '')
+    .replace(/([\s,;-])(MP|MF)\s*-\s*\d+(?=$|[\s,;.-])/ig, '')
+    .replace(/\s+,/g, ',')
+    .replace(/,{2,}/g, ',')
+    .replace(/[\s,;-]+$/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+function recipeColor(recipe) {
+  const stored = String(recipe?.color || '').trim();
+  if (stored) return stored;
+  const name = productionNameForRecipe(recipe).toLowerCase();
+  if (name.includes('orange')) return 'Orange';
+  if (name.includes('white')) return 'White';
+  if (name.includes('black')) return 'Black';
+  if (name.includes('grey') || name.includes('gray')) return 'Grey';
+  return '';
+}
+
+function productionRecipes() {
+  return state.recipes.filter((recipe) => productionCodeForRecipe(recipe));
+}
+
+function selectedRecipe() {
+  const code = normalizedCode($('recipeSelect').value);
+  return state.recipes.find((recipe) => normalizedCode(recipe.code) === code) || null;
+}
+
+function recipeForRecord(record) {
+  const recipeCode = normalizedCode(record.recipeCode);
+  const productionCode = normalizedCode(record.mixCode);
+  return state.recipes.find((recipe) => recipeCode && normalizedCode(recipe.code) === recipeCode)
+    || state.recipes.find((recipe) => productionCode && productionCodeForRecipe(recipe) === productionCode)
+    || state.recipes.find((recipe) => productionCode && normalizedCode(recipe.code) === productionCode)
+    || null;
+}
+
+function recipeOptionText(recipe) {
+  const parts = [
+    productionCodeForRecipe(recipe),
+    productionNameForRecipe(recipe),
+    normalizedCode(recipe.code) ? `Recipe ${normalizedCode(recipe.code)}` : ''
+  ].filter(Boolean);
+  return parts.join(' — ');
+}
+
+function renderRecipeOptions(selectedCode = '', legacyRecord = null) {
+  const select = $('recipeSelect');
+  const recipes = productionRecipes();
+  select.innerHTML = '<option value="">Choose a production mix</option>';
+  recipes.forEach((recipe) => {
+    const option = document.createElement('option');
+    option.value = normalizedCode(recipe.code);
+    option.textContent = recipeOptionText(recipe);
+    select.appendChild(option);
+  });
+
+  const wanted = normalizedCode(selectedCode);
+  if (wanted && [...select.options].some((option) => normalizedCode(option.value) === wanted)) {
+    select.value = wanted;
+  } else if (legacyRecord) {
+    const option = document.createElement('option');
+    option.value = `LEGACY:${legacyRecord.id}`;
+    option.textContent = `${legacyRecord.mixCode || 'Legacy'} — ${legacyRecord.mixName || 'Historical mix'}`;
+    option.dataset.legacy = 'true';
+    select.appendChild(option);
+    select.value = option.value;
+  } else {
+    select.value = '';
+  }
+}
+
+function applySelectedRecipe(overwriteColor = true) {
+  const recipe = selectedRecipe();
+  if (!recipe) {
+    if (!$('recipeSelect').selectedOptions[0]?.dataset.legacy) {
+      $('mixCode').value = '';
+      $('recipeCode').value = '';
+      $('mixName').value = '';
+    }
+    return;
+  }
+  $('mixCode').value = productionCodeForRecipe(recipe);
+  $('recipeCode').value = normalizedCode(recipe.code);
+  $('mixName').value = productionNameForRecipe(recipe);
+  if (overwriteColor && recipeColor(recipe)) $('color').value = recipeColor(recipe);
 }
 
 async function loadRecipeSuggestions() {
@@ -125,6 +224,7 @@ async function loadRecipeSuggestions() {
     const data = await response.json();
     state.recipes = Array.isArray(data?.state?.recipes) ? data.state.recipes : [];
     renderHistorySuggestions();
+    renderRecipeOptions();
   } catch (error) {
     console.warn('Recipe suggestions unavailable:', error);
   }
@@ -201,8 +301,7 @@ function setProductionType(type) {
   $('mixerFields').classList.toggle('hidden', !isMixer);
   $('pelletizerFields').classList.toggle('hidden', isMixer);
   $('mixerId').required = isMixer;
-  $('mixCode').required = isMixer;
-  $('mixName').required = isMixer;
+  $('recipeSelect').required = isMixer;
   $('pelletizerId').required = !isMixer;
   $('application').required = !isMixer;
 }
@@ -220,6 +319,8 @@ function resetForm() {
   $('date').value = state.filterDate || todayISO();
   $('shift').value = 'Morning';
   setProductionType('Mixer');
+  renderRecipeOptions();
+  applySelectedRecipe();
   $('formTitle').textContent = 'Add Production Record';
   $('saveButton').textContent = 'Save Record';
   $('cancelEdit').classList.add('hidden');
@@ -247,11 +348,17 @@ function editRecord(id) {
   $('shift').value = record.shift;
   $('color').value = record.color || '';
   $('quantityKg').value = round2(record.quantityKg).toFixed(2);
-  $('mixCode').value = record.mixCode || '';
-  $('mixName').value = record.mixName || '';
   $('application').value = record.application || '';
 
   if (record.type === 'Mixer') {
+    const recipe = recipeForRecord(record);
+    renderRecipeOptions(recipe?.code || '', recipe ? null : record);
+    if (recipe) applySelectedRecipe(false);
+    else {
+      $('mixCode').value = record.mixCode || '';
+      $('recipeCode').value = record.recipeCode || '';
+      $('mixName').value = record.mixName || '';
+    }
     const legacyId = record.mixerId || `legacy-${record.id}`;
     ensureSelectHasLegacyOption($('mixerId'), legacyId, record.mixerName || 'Mixer');
     $('mixerId').value = legacyId;
@@ -279,11 +386,17 @@ function duplicateRecord(id) {
   $('shift').value = record.shift;
   $('color').value = record.color || '';
   $('quantityKg').value = round2(record.quantityKg).toFixed(2);
-  $('mixCode').value = record.mixCode || '';
-  $('mixName').value = record.mixName || '';
   $('application').value = record.application || '';
 
   if (record.type === 'Mixer') {
+    const recipe = recipeForRecord(record);
+    renderRecipeOptions(recipe?.code || '', recipe ? null : record);
+    if (recipe) applySelectedRecipe(false);
+    else {
+      $('mixCode').value = record.mixCode || '';
+      $('recipeCode').value = record.recipeCode || '';
+      $('mixName').value = record.mixName || '';
+    }
     const equipmentId = record.mixerId || `legacy-${record.id}`;
     ensureSelectHasLegacyOption($('mixerId'), equipmentId, record.mixerName || 'Mixer');
     $('mixerId').value = equipmentId;
@@ -327,6 +440,7 @@ function visibleRecords() {
       record.mixerName,
       record.pelletizerName,
       record.mixCode,
+      record.recipeCode,
       record.mixName,
       record.color,
       record.application
@@ -444,6 +558,12 @@ form.addEventListener('submit', async (event) => {
 
   const type = $('productionType').value;
   const equipment = selectedEquipment(type);
+  const recipe = type === 'Mixer' ? selectedRecipe() : null;
+  const legacyRecipe = type === 'Mixer' && $('recipeSelect').selectedOptions[0]?.dataset.legacy === 'true';
+  if (type === 'Mixer' && !recipe && !legacyRecipe) {
+    setMessage('Choose a mix from Materials & Recipes.', 'error');
+    return;
+  }
   const payload = {
     type,
     date: $('date').value,
@@ -454,8 +574,9 @@ form.addEventListener('submit', async (event) => {
     mixerName: type === 'Mixer' ? equipment.name : '',
     pelletizerId: type === 'Pelletizer' ? equipment.id : '',
     pelletizerName: type === 'Pelletizer' ? equipment.name : '',
-    mixCode: type === 'Mixer' ? $('mixCode').value.trim() : '',
-    mixName: type === 'Mixer' ? $('mixName').value.trim() : '',
+    mixCode: type === 'Mixer' ? (recipe ? productionCodeForRecipe(recipe) : $('mixCode').value.trim()) : '',
+    recipeCode: type === 'Mixer' ? (recipe ? normalizedCode(recipe.code) : $('recipeCode').value.trim()) : '',
+    mixName: type === 'Mixer' ? (recipe ? productionNameForRecipe(recipe) : $('mixName').value.trim()) : '',
     application: type === 'Pelletizer' ? $('application').value.trim() : ''
   };
 
@@ -595,19 +716,12 @@ $('themeSelect').addEventListener('change', (event) => {
   setTheme(event.target.value);
 });
 
-['mixCode', 'mixName', 'application', 'color'].forEach((id) => {
+['application', 'color'].forEach((id) => {
   $(id).addEventListener('click', (event) => showHistoryPicker(event.currentTarget));
   $(id).addEventListener('focus', (event) => showHistoryPicker(event.currentTarget));
 });
 
-$('mixCode').addEventListener('change', () => {
-  const recipe = state.recipes.find((r) => String(r.code || '').trim().toLowerCase() === $('mixCode').value.trim().toLowerCase());
-  if (recipe && !$('mixName').value.trim()) $('mixName').value = recipe.name || '';
-});
-$('mixName').addEventListener('change', () => {
-  const recipe = state.recipes.find((r) => String(r.name || '').trim().toLowerCase() === $('mixName').value.trim().toLowerCase());
-  if (recipe && !$('mixCode').value.trim()) $('mixCode').value = recipe.code || '';
-});
+$('recipeSelect').addEventListener('change', () => applySelectedRecipe(true));
 
 $('quantityKg').addEventListener('blur', normalizeQuantityInput);
 $('quantityKg').addEventListener('change', normalizeQuantityInput);
@@ -735,7 +849,7 @@ function exportExcelBackup() {
   const production = state.records.map((r) => ({
     'Record ID': r.id, 'Type': r.type, 'Date': r.date, 'Shift': r.shift,
     'Equipment ID': r.type === 'Mixer' ? r.mixerId : r.pelletizerId,
-    'Equipment Name': recordEquipmentName(r), 'Mix Code': r.mixCode || '', 'Mix Name': r.mixName || '',
+    'Equipment Name': recordEquipmentName(r), 'Mix Code': r.mixCode || '', 'Recipe Code': r.recipeCode || '', 'Mix Name': r.mixName || '',
     'Pellet Application': r.application || '', 'Color': r.color, 'Quantity (kg)': Number(r.quantityKg),
     'Created At': r.createdAt || '', 'Updated At': r.updatedAt || ''
   }));
@@ -772,9 +886,13 @@ async function importProductionBackup(file) {
       shift: String(r.Shift || 'Morning') === 'Evening' ? 'Night' : String(r.Shift || 'Morning'),
       mixerId: type === 'Mixer' ? String(r['Equipment ID'] || '') : '', mixerName: type === 'Mixer' ? String(r['Equipment Name'] || '') : '',
       pelletizerId: type === 'Pelletizer' ? String(r['Equipment ID'] || '') : '', pelletizerName: type === 'Pelletizer' ? String(r['Equipment Name'] || '') : '',
-      mixCode: String(r['Mix Code'] || ''), mixName: String(r['Mix Name'] || ''), application: String(r['Pellet Application'] || ''),
+      mixCode: String(r['Mix Code'] || ''), recipeCode: String(r['Recipe Code'] || ''), mixName: String(r['Mix Name'] || ''), application: String(r['Pellet Application'] || ''),
       color: String(r.Color || ''), quantityKg: Number(r['Quantity (kg)'] || 0)
     };
+    if (type === 'Mixer' && !payload.recipeCode) {
+      const match = state.recipes.find((recipe) => productionCodeForRecipe(recipe) === normalizedCode(payload.mixCode));
+      if (match) payload.recipeCode = normalizedCode(match.code);
+    }
     const response = await apiFetch('api.php?action=records', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
     if (!response.ok) { const data = await response.json(); throw new Error(data.error || 'Import failed.'); }
   }

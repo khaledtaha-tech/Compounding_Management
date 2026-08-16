@@ -21,6 +21,14 @@ function iso_now(): string
 }
 
 try {
+    if (empty($_SESSION['compounding_schema_v3'])) {
+        $recipeCodeColumn = $pdo->query("SHOW COLUMNS FROM production_records LIKE 'recipe_code'")->fetch();
+        if (!$recipeCodeColumn) {
+            $pdo->exec("ALTER TABLE production_records ADD COLUMN recipe_code VARCHAR(80) NULL AFTER mix_code");
+        }
+        $_SESSION['compounding_schema_v3'] = true;
+    }
+
     if ($action === 'session' && $method === 'GET') {
         json_response(['user' => $user]);
     }
@@ -68,6 +76,7 @@ try {
                     'mixerId' => $isMixer ? ($row['equipment_id'] ?? '') : '',
                     'mixerName' => $isMixer ? $row['equipment_name'] : '',
                     'mixCode' => $isMixer ? ($row['mix_code'] ?? '') : '',
+                    'recipeCode' => $isMixer ? ($row['recipe_code'] ?? '') : '',
                     'mixName' => $isMixer ? ($row['mix_name'] ?? '') : '',
                     'pelletizerId' => !$isMixer ? ($row['equipment_id'] ?? '') : '',
                     'pelletizerName' => !$isMixer ? $row['equipment_name'] : '',
@@ -95,6 +104,7 @@ try {
             $equipmentName = clean((string) ($type === 'Mixer' ? ($body['mixerName'] ?? '') : ($body['pelletizerName'] ?? '')), 100);
             if ($equipmentName === '') json_response(['error' => 'Equipment is required.'], 422);
             $mixCode = $type === 'Mixer' ? clean((string) ($body['mixCode'] ?? ''), 80) : '';
+            $recipeCode = $type === 'Mixer' ? clean((string) ($body['recipeCode'] ?? ''), 80) : '';
             $mixName = $type === 'Mixer' ? clean((string) ($body['mixName'] ?? ''), 190) : '';
             $application = $type === 'Pelletizer' ? clean((string) ($body['application'] ?? ''), 190) : '';
             if ($type === 'Mixer' && ($mixCode === '' || $mixName === '')) json_response(['error' => 'Mix code and mix name are required.'], 422);
@@ -104,12 +114,12 @@ try {
             $created = iso_now();
             if ($method === 'POST') {
                 if ($id === '') $id = bin2hex(random_bytes(10));
-                $stmt = $pdo->prepare('INSERT INTO production_records (id,user_id,type,production_date,shift,equipment_id,equipment_name,mix_code,mix_name,pellet_application,color,quantity_kg,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE type=VALUES(type),production_date=VALUES(production_date),shift=VALUES(shift),equipment_id=VALUES(equipment_id),equipment_name=VALUES(equipment_name),mix_code=VALUES(mix_code),mix_name=VALUES(mix_name),pellet_application=VALUES(pellet_application),color=VALUES(color),quantity_kg=VALUES(quantity_kg),updated_at=VALUES(updated_at)');
-                $stmt->execute([$id,$user['id'],$type,$date,$shift,$equipmentId ?: null,$equipmentName,$mixCode ?: null,$mixName ?: null,$application ?: null,$color,$quantity,$created,$created]);
+                $stmt = $pdo->prepare('INSERT INTO production_records (id,user_id,type,production_date,shift,equipment_id,equipment_name,mix_code,recipe_code,mix_name,pellet_application,color,quantity_kg,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE type=VALUES(type),production_date=VALUES(production_date),shift=VALUES(shift),equipment_id=VALUES(equipment_id),equipment_name=VALUES(equipment_name),mix_code=VALUES(mix_code),recipe_code=VALUES(recipe_code),mix_name=VALUES(mix_name),pellet_application=VALUES(pellet_application),color=VALUES(color),quantity_kg=VALUES(quantity_kg),updated_at=VALUES(updated_at)');
+                $stmt->execute([$id,$user['id'],$type,$date,$shift,$equipmentId ?: null,$equipmentName,$mixCode ?: null,$recipeCode ?: null,$mixName ?: null,$application ?: null,$color,$quantity,$created,$created]);
             } else {
                 if ($id === '') json_response(['error' => 'Record ID is required.'], 422);
-                $stmt = $pdo->prepare('UPDATE production_records SET type=?,production_date=?,shift=?,equipment_id=?,equipment_name=?,mix_code=?,mix_name=?,pellet_application=?,color=?,quantity_kg=?,updated_at=? WHERE id=? AND user_id=?');
-                $stmt->execute([$type,$date,$shift,$equipmentId ?: null,$equipmentName,$mixCode ?: null,$mixName ?: null,$application ?: null,$color,$quantity,$created,$id,$user['id']]);
+                $stmt = $pdo->prepare('UPDATE production_records SET type=?,production_date=?,shift=?,equipment_id=?,equipment_name=?,mix_code=?,recipe_code=?,mix_name=?,pellet_application=?,color=?,quantity_kg=?,updated_at=? WHERE id=? AND user_id=?');
+                $stmt->execute([$type,$date,$shift,$equipmentId ?: null,$equipmentName,$mixCode ?: null,$recipeCode ?: null,$mixName ?: null,$application ?: null,$color,$quantity,$created,$id,$user['id']]);
             }
             json_response(['id' => $id, 'ok' => true], $method === 'POST' ? 201 : 200);
         }
