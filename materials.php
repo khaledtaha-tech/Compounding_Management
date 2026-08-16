@@ -111,6 +111,9 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
 #recipesPage .recipe-tools{display:flex;flex-wrap:wrap}
 #recipesPage .recipe-tools>input:not([type="file"]){flex:1 1 260px}
 #recipesPage .recipe-tools>#recipeCategoryFilter{flex:0 0 180px}
+#materialsPage .recipe-tools{display:flex;flex-wrap:wrap}
+#materialsPage .recipe-tools>input{flex:1 1 260px}
+#materialsPage .recipe-tools>#materialSortBy{flex:0 0 200px}
 .import-overlay{position:fixed;inset:0;background:rgba(20,32,50,.48);display:none;align-items:center;justify-content:center;z-index:1001}
 .import-overlay.open{display:flex}
 .import-card{width:520px;background:#fff;border-radius:18px;padding:24px;box-shadow:0 25px 70px rgba(20,32,50,.24)}
@@ -314,7 +317,7 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
       <span class="badge" id="materialTotalBadge">0 Materials</span>
     </div>
 
-    <div class="recipe-tools" style="grid-template-columns:minmax(220px,1fr) auto auto auto">
+    <div class="recipe-tools">
       <input id="materialSearch" placeholder="Search materials, grades, countries, or companies...">
       <select id="materialSortBy" style="font-weight:700;background:#f8fbff">
         <option value="name">Sort by: Name A-Z</option>
@@ -324,6 +327,7 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
       </select>
       <button id="newMaterial" class="btn primary">+ New Material</button>
       <button id="syncMaterials" class="btn soft">Sync from Recipes</button>
+      <button id="exportStockCountPdf" class="btn soft">Export Stock Count PDF</button>
     </div>
 
     <table>
@@ -1396,6 +1400,158 @@ function pdfNumber(value,maxDecimals=4){
   });
 }
 
+function buildStockCountRows(){
+  const grouped=new Map();
+
+  (state.rawMaterials||[]).forEach(item=>{
+    const material=itemMaterial(item);
+    if(!material)return;
+    const materialKey=material.toLowerCase();
+    if(!grouped.has(materialKey))grouped.set(materialKey,{material,grades:[]});
+
+    const grade=itemGrade(item);
+    if(grade&&!grouped.get(materialKey).grades.some(value=>value.toLowerCase()===grade.toLowerCase())){
+      grouped.get(materialKey).grades.push(grade);
+    }
+  });
+
+  return [...grouped.values()]
+    .sort((a,b)=>a.material.localeCompare(b.material,"en",{sensitivity:"base"}))
+    .flatMap((group,materialIndex)=>{
+      const grades=[...group.grades].sort((a,b)=>a.localeCompare(b,"en",{sensitivity:"base"}));
+      while(grades.length<2)grades.push("");
+      return grades.map((grade,gradeIndex)=>[
+        `${materialIndex+1}.${gradeIndex+1}`,
+        pdfSafeText(group.material),
+        pdfSafeText(grade),
+        "",
+        ""
+      ]);
+    });
+}
+
+function drawStockCountPageHeader(doc){
+  const pageWidth=doc.internal.pageSize.getWidth();
+
+  doc.setFillColor(47,111,237);
+  doc.rect(14,10,pageWidth-28,25,"F");
+  doc.setFillColor(148,201,255);
+  doc.rect(14,10,4,25,"F");
+  doc.setTextColor(255,255,255);
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(8.5);
+  doc.text("COMPOUNDING SECTION",22,18);
+  doc.setFontSize(15.5);
+  doc.text("RAW MATERIAL STOCK COUNT SHEET",22,28);
+
+  const boxY=40,boxHeight=15,boxWidth=(pageWidth-28)/3;
+  const fields=[
+    ["COUNT DATE","____ / ____ / ______"],
+    ["COUNTED BY","________________________"],
+    ["CHECKED BY","________________________"]
+  ];
+  fields.forEach((field,index)=>{
+    const x=14+index*boxWidth;
+    doc.setFillColor(247,250,255);
+    doc.setDrawColor(211,224,246);
+    doc.rect(x,boxY,boxWidth,boxHeight,"FD");
+    doc.setTextColor(81,101,137);
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(6.8);
+    doc.text(field[0],x+3,46);
+    doc.setTextColor(20,43,81);
+    doc.setFont("helvetica","normal");
+    doc.setFontSize(8.6);
+    doc.text(field[1],x+3,52);
+  });
+}
+
+async function exportStockCountSheetPdf(){
+  const rows=buildStockCountRows();
+  if(!rows.length){
+    alert("Add raw materials before exporting the stock count sheet.");
+    return;
+  }
+  if(!window.jspdf||!window.jspdf.jsPDF){
+    alert("The PDF component could not be loaded. Check the internet connection and try again.");
+    return;
+  }
+
+  const button=document.getElementById("exportStockCountPdf");
+  const originalText=button.textContent;
+  button.disabled=true;
+  button.textContent="Preparing PDF...";
+  await new Promise(resolve=>requestAnimationFrame(resolve));
+
+  try{
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4",compress:true});
+    if(typeof doc.autoTable!=="function")throw new Error("The PDF table component could not be loaded.");
+    doc.setProperties({
+      title:"Raw Material Stock Count Sheet",
+      subject:"Printable physical inventory count form",
+      author:"Material Planner Pro",
+      creator:"Material Planner Pro"
+    });
+
+    doc.autoTable({
+      startY:61,
+      margin:{top:61,left:14,right:14,bottom:24},
+      tableWidth:182,
+      head:[["NO.","MATERIAL","GRADE / TRADE NAME","PHYSICAL STOCK (kg)","NOTES"]],
+      body:rows,
+      theme:"grid",
+      styles:{
+        font:"helvetica",fontSize:8.2,cellPadding:2.25,minCellHeight:10.5,
+        overflow:"linebreak",valign:"middle",textColor:[20,43,81],
+        lineColor:[207,220,239],lineWidth:.18
+      },
+      headStyles:{
+        fillColor:[47,111,237],textColor:[255,255,255],fontStyle:"bold",
+        fontSize:7.2,halign:"center",valign:"middle",cellPadding:2.1,minCellHeight:10
+      },
+      alternateRowStyles:{fillColor:[247,250,255]},
+      columnStyles:{
+        0:{cellWidth:12,halign:"center",fontStyle:"bold"},
+        1:{cellWidth:50,fontStyle:"bold"},
+        2:{cellWidth:49},
+        3:{cellWidth:34,halign:"center"},
+        4:{cellWidth:37}
+      },
+      pageBreak:"auto",
+      rowPageBreak:"avoid",
+      showHead:"everyPage",
+      didDrawPage:()=>drawStockCountPageHeader(doc)
+    });
+
+    const pageTotal=doc.getNumberOfPages();
+    for(let page=1;page<=pageTotal;page++){
+      doc.setPage(page);
+      doc.setDrawColor(211,224,246);
+      doc.line(14,278,196,278);
+      doc.setTextColor(20,43,81);
+      doc.setFont("helvetica","bold");
+      doc.setFontSize(7.5);
+      doc.text("Counted By Signature: ____________________",14,284);
+      doc.text("Checked By Signature: ____________________",112,284);
+      doc.setFont("helvetica","normal");
+      doc.setTextColor(102,112,133);
+      doc.setFontSize(7);
+      doc.text("Enter the actual physical quantity only. Do not copy quantities from the system.",14,290);
+      doc.text(`Page ${page} of ${pageTotal}`,196,290,{align:"right"});
+    }
+
+    const datePart=new Date().toISOString().slice(0,10);
+    doc.save(`Raw_Material_Stock_Count_${datePart}.pdf`);
+    toast("Stock count sheet exported to PDF.");
+  }catch(error){
+    alert("PDF export failed: "+error.message);
+  }finally{
+    button.disabled=false;
+    button.textContent=originalText;
+  }
+}
+
 function drawRecipePdfPage(doc,recipe){
   const pageWidth=doc.internal.pageSize.getWidth();
   const batchWeight=total(recipe);
@@ -1742,6 +1898,7 @@ document.getElementById("backupFileInput").onchange=async e=>{
 };
 document.getElementById("newMaterial").onclick=()=>{state.rawMaterials.push({id:makeMaterialId(),material:"",grade:"",country:"",company:"",stockKg:0});save();renderRawMaterials()};
 document.getElementById("syncMaterials").onclick=syncRawMaterialsFromRecipes;
+document.getElementById("exportStockCountPdf").onclick=exportStockCountSheetPdf;
 document.getElementById("materialSearch").oninput=renderRawMaterials;
 document.getElementById("materialSortBy").onchange=renderRawMaterials;
 renderDashboard();renderRecipes();renderRawMaterials();isDirty=false;updateSaveStatus();
