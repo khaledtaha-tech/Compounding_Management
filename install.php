@@ -34,6 +34,8 @@ try {
         mix_name VARCHAR(190) NULL,
         pellet_application VARCHAR(190) NULL,
         color VARCHAR(100) NOT NULL,
+        batch_count DECIMAL(12,3) NULL,
+        batch_weight_kg DECIMAL(14,4) NULL,
         quantity_kg DECIMAL(14,2) NOT NULL,
         created_at DATETIME NOT NULL,
         updated_at DATETIME NOT NULL,
@@ -43,6 +45,14 @@ try {
     $recipeCodeColumn = $pdo->query("SHOW COLUMNS FROM production_records LIKE 'recipe_code'")->fetch();
     if (!$recipeCodeColumn) {
         $pdo->exec("ALTER TABLE production_records ADD COLUMN recipe_code VARCHAR(80) NULL AFTER mix_code");
+    }
+    $batchCountColumn = $pdo->query("SHOW COLUMNS FROM production_records LIKE 'batch_count'")->fetch();
+    if (!$batchCountColumn) {
+        $pdo->exec("ALTER TABLE production_records ADD COLUMN batch_count DECIMAL(12,3) NULL AFTER color");
+    }
+    $batchWeightColumn = $pdo->query("SHOW COLUMNS FROM production_records LIKE 'batch_weight_kg'")->fetch();
+    if (!$batchWeightColumn) {
+        $pdo->exec("ALTER TABLE production_records ADD COLUMN batch_weight_kg DECIMAL(14,4) NULL AFTER batch_count");
     }
     $pdo->exec("CREATE TABLE IF NOT EXISTS material_states (
         user_id INT UNSIGNED PRIMARY KEY,

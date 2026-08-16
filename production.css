@@ -335,7 +335,7 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px 
 .secondary-button { padding: 10px 13px; font-weight: 700; white-space: nowrap; }
 
 .table-wrap { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; min-width: 1080px; }
+table { width: 100%; border-collapse: collapse; min-width: 1160px; }
 th, td { padding: 15px 16px; text-align: left; border-bottom: 1px solid var(--border); }
 th {
   color: var(--muted);

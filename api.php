@@ -21,12 +21,20 @@ function iso_now(): string
 }
 
 try {
-    if (empty($_SESSION['compounding_schema_v3'])) {
+    if (empty($_SESSION['compounding_schema_v5'])) {
         $recipeCodeColumn = $pdo->query("SHOW COLUMNS FROM production_records LIKE 'recipe_code'")->fetch();
         if (!$recipeCodeColumn) {
             $pdo->exec("ALTER TABLE production_records ADD COLUMN recipe_code VARCHAR(80) NULL AFTER mix_code");
         }
-        $_SESSION['compounding_schema_v3'] = true;
+        $batchCountColumn = $pdo->query("SHOW COLUMNS FROM production_records LIKE 'batch_count'")->fetch();
+        if (!$batchCountColumn) {
+            $pdo->exec("ALTER TABLE production_records ADD COLUMN batch_count DECIMAL(12,3) NULL AFTER color");
+        }
+        $batchWeightColumn = $pdo->query("SHOW COLUMNS FROM production_records LIKE 'batch_weight_kg'")->fetch();
+        if (!$batchWeightColumn) {
+            $pdo->exec("ALTER TABLE production_records ADD COLUMN batch_weight_kg DECIMAL(14,4) NULL AFTER batch_count");
+        }
+        $_SESSION['compounding_schema_v5'] = true;
     }
 
     if ($action === 'session' && $method === 'GET') {
@@ -73,6 +81,8 @@ try {
                 $records[] = [
                     'id' => $row['id'], 'type' => $row['type'], 'date' => $row['production_date'],
                     'shift' => $row['shift'], 'color' => $row['color'], 'quantityKg' => (float) $row['quantity_kg'],
+                    'batchCount' => $isMixer && $row['batch_count'] !== null ? (float) $row['batch_count'] : null,
+                    'batchWeightKg' => $isMixer && $row['batch_weight_kg'] !== null ? (float) $row['batch_weight_kg'] : null,
                     'mixerId' => $isMixer ? ($row['equipment_id'] ?? '') : '',
                     'mixerName' => $isMixer ? $row['equipment_name'] : '',
                     'mixCode' => $isMixer ? ($row['mix_code'] ?? '') : '',
@@ -94,11 +104,17 @@ try {
             $shift = clean((string) ($body['shift'] ?? ''), 20);
             $color = clean((string) ($body['color'] ?? ''), 100);
             $quantity = round((float) ($body['quantityKg'] ?? 0), 2);
+            $batchCount = isset($body['batchCount']) && $body['batchCount'] !== '' && $body['batchCount'] !== null
+                ? round((float) $body['batchCount'], 3)
+                : null;
+            $batchWeight = isset($body['batchWeightKg']) && $body['batchWeightKg'] !== '' && $body['batchWeightKg'] !== null
+                ? round((float) $body['batchWeightKg'], 4)
+                : null;
             if (!in_array($type, ['Mixer', 'Pelletizer'], true)) json_response(['error' => 'Choose Mixer or Pelletizer.'], 422);
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) json_response(['error' => 'A valid date is required.'], 422);
             if ($shift === 'Evening') $shift = 'Night';
             if (!in_array($shift, ['Morning', 'Night'], true)) json_response(['error' => 'Choose Morning or Night shift.'], 422);
-            if ($color === '' || $quantity <= 0) json_response(['error' => 'Color and a positive quantity are required.'], 422);
+            if ($color === '') json_response(['error' => 'Color is required.'], 422);
 
             $equipmentId = clean((string) ($type === 'Mixer' ? ($body['mixerId'] ?? '') : ($body['pelletizerId'] ?? '')), 80);
             $equipmentName = clean((string) ($type === 'Mixer' ? ($body['mixerName'] ?? '') : ($body['pelletizerName'] ?? '')), 100);
@@ -109,17 +125,29 @@ try {
             $application = $type === 'Pelletizer' ? clean((string) ($body['application'] ?? ''), 190) : '';
             if ($type === 'Mixer' && ($mixCode === '' || $mixName === '')) json_response(['error' => 'Mix code and mix name are required.'], 422);
             if ($type === 'Pelletizer' && $application === '') json_response(['error' => 'Pellet application is required.'], 422);
+            if ($type === 'Mixer') {
+                if ($batchCount !== null && $batchCount <= 0) json_response(['error' => 'Number of batches must be greater than zero.'], 422);
+                if ($batchWeight !== null && $batchWeight <= 0) json_response(['error' => 'Batch weight must be greater than zero.'], 422);
+                $hasBatchCount = $batchCount !== null && $batchCount > 0;
+                $hasBatchWeight = $batchWeight !== null && $batchWeight > 0;
+                if ($hasBatchCount !== $hasBatchWeight) json_response(['error' => 'Batch count and batch weight must be provided together.'], 422);
+                if ($hasBatchCount && $hasBatchWeight) $quantity = round($batchCount * $batchWeight, 2);
+            } else {
+                $batchCount = null;
+                $batchWeight = null;
+            }
+            if ($quantity <= 0) json_response(['error' => 'Production quantity must be greater than zero.'], 422);
 
             $id = clean((string) ($_GET['id'] ?? $body['id'] ?? ''), 80);
             $created = iso_now();
             if ($method === 'POST') {
                 if ($id === '') $id = bin2hex(random_bytes(10));
-                $stmt = $pdo->prepare('INSERT INTO production_records (id,user_id,type,production_date,shift,equipment_id,equipment_name,mix_code,recipe_code,mix_name,pellet_application,color,quantity_kg,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE type=VALUES(type),production_date=VALUES(production_date),shift=VALUES(shift),equipment_id=VALUES(equipment_id),equipment_name=VALUES(equipment_name),mix_code=VALUES(mix_code),recipe_code=VALUES(recipe_code),mix_name=VALUES(mix_name),pellet_application=VALUES(pellet_application),color=VALUES(color),quantity_kg=VALUES(quantity_kg),updated_at=VALUES(updated_at)');
-                $stmt->execute([$id,$user['id'],$type,$date,$shift,$equipmentId ?: null,$equipmentName,$mixCode ?: null,$recipeCode ?: null,$mixName ?: null,$application ?: null,$color,$quantity,$created,$created]);
+                $stmt = $pdo->prepare('INSERT INTO production_records (id,user_id,type,production_date,shift,equipment_id,equipment_name,mix_code,recipe_code,mix_name,pellet_application,color,batch_count,batch_weight_kg,quantity_kg,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE type=VALUES(type),production_date=VALUES(production_date),shift=VALUES(shift),equipment_id=VALUES(equipment_id),equipment_name=VALUES(equipment_name),mix_code=VALUES(mix_code),recipe_code=VALUES(recipe_code),mix_name=VALUES(mix_name),pellet_application=VALUES(pellet_application),color=VALUES(color),batch_count=VALUES(batch_count),batch_weight_kg=VALUES(batch_weight_kg),quantity_kg=VALUES(quantity_kg),updated_at=VALUES(updated_at)');
+                $stmt->execute([$id,$user['id'],$type,$date,$shift,$equipmentId ?: null,$equipmentName,$mixCode ?: null,$recipeCode ?: null,$mixName ?: null,$application ?: null,$color,$batchCount,$batchWeight,$quantity,$created,$created]);
             } else {
                 if ($id === '') json_response(['error' => 'Record ID is required.'], 422);
-                $stmt = $pdo->prepare('UPDATE production_records SET type=?,production_date=?,shift=?,equipment_id=?,equipment_name=?,mix_code=?,recipe_code=?,mix_name=?,pellet_application=?,color=?,quantity_kg=?,updated_at=? WHERE id=? AND user_id=?');
-                $stmt->execute([$type,$date,$shift,$equipmentId ?: null,$equipmentName,$mixCode ?: null,$recipeCode ?: null,$mixName ?: null,$application ?: null,$color,$quantity,$created,$id,$user['id']]);
+                $stmt = $pdo->prepare('UPDATE production_records SET type=?,production_date=?,shift=?,equipment_id=?,equipment_name=?,mix_code=?,recipe_code=?,mix_name=?,pellet_application=?,color=?,batch_count=?,batch_weight_kg=?,quantity_kg=?,updated_at=? WHERE id=? AND user_id=?');
+                $stmt->execute([$type,$date,$shift,$equipmentId ?: null,$equipmentName,$mixCode ?: null,$recipeCode ?: null,$mixName ?: null,$application ?: null,$color,$batchCount,$batchWeight,$quantity,$created,$id,$user['id']]);
             }
             json_response(['id' => $id, 'ok' => true], $method === 'POST' ? 201 : 200);
         }

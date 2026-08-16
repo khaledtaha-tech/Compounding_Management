@@ -196,7 +196,7 @@
             <div>
               <span class="report-kicker">DAILY REPORT</span>
               <strong>Daily Production PDF</strong>
-              <small>Single-page A4 landscape report with only the selected day production.</small>
+              <small>Single-page A4 portrait report with only the selected day production.</small>
             </div>
             <label>
               <span>Report date</span>
@@ -290,6 +290,16 @@
                   <span>Mix Name</span>
                   <input id="mixName" class="readonly-field" type="text" readonly placeholder="Selected recipe name" />
                 </label>
+
+                <label>
+                  <span>Batch Weight (kg)</span>
+                  <input id="batchWeightKg" class="readonly-field" type="number" step="0.0001" readonly placeholder="0.00" />
+                </label>
+
+                <label>
+                  <span>No. of Batches</span>
+                  <input id="batchCount" type="number" min="0.001" step="any" placeholder="0" inputmode="decimal" />
+                </label>
               </div>
 
               <div id="pelletizerFields" class="field-group full-width hidden">
@@ -314,7 +324,7 @@
 
               <label>
                 <span>Production (kg)</span>
-                <input id="quantityKg" type="number" min="0.01" step="0.01" placeholder="0.00" required />
+                <input id="quantityKg" class="readonly-field" type="number" min="0.01" step="0.01" placeholder="0.00" readonly required />
               </label>
             </div>
 
@@ -384,6 +394,7 @@
                   <th>Equipment</th>
                   <th>Mix / Application</th>
                   <th>Color</th>
+                  <th>Batches</th>
                   <th>Production</th>
                   <th class="actions-column">Actions</th>
                 </tr>
@@ -457,6 +468,6 @@
   <script src="vendor/jspdf.umd.min.js"></script>
   <script src="vendor/jspdf.plugin.autotable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="production.js?v=4.0.0"></script>
+  <script src="production.js?v=5.0.0"></script>
 </body>
 </html>
