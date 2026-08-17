@@ -322,8 +322,8 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
       <select id="materialSortBy" style="font-weight:700;background:#f8fbff">
         <option value="name">Sort by: Name A-Z</option>
         <option value="name-desc">Sort by: Name Z-A</option>
-        <option value="stock">Sort by: Stock (High to Low)</option>
-        <option value="stock-asc">Sort by: Stock (Low to High)</option>
+        <option value="stock">Sort by: Total Stock (High to Low)</option>
+        <option value="stock-asc">Sort by: Total Stock (Low to High)</option>
       </select>
       <button id="newMaterial" class="btn primary">+ New Material</button>
       <button id="syncMaterials" class="btn soft">Sync from Recipes</button>
@@ -333,11 +333,13 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
     <table>
       <thead>
         <tr>
-          <th style="width:22%">Material Name</th>
-          <th style="width:22%">Grade / Trade Name</th>
-          <th style="width:16%">Country</th>
-          <th style="width:22%">Company</th>
-          <th class="num" style="width:13%">Stock kg</th>
+          <th style="width:20%">Material Name</th>
+          <th style="width:17%">Grade / Trade Name</th>
+          <th style="width:11%">Country</th>
+          <th style="width:15%">Company</th>
+          <th class="num" style="width:11%">Stock WIP</th>
+          <th class="num" style="width:11%">Stock WH</th>
+          <th class="num" style="width:12%">Total Stock</th>
           <th style="width:55px"></th>
         </tr>
       </thead>
@@ -528,6 +530,7 @@ function parseKgInput(value){
   const num=Number(String(value??"").replace(/,/g,"").trim());
   return Number.isFinite(num)?num:0;
 }
+function materialTotalStock(m){return (Number(m.stockWipKg)||0)+(Number(m.stockWhKg)||0)}
 function norm(s){return (s||"").trim().toLowerCase()}
 function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 
@@ -608,13 +611,15 @@ function migrateState(){
   const existing=Array.isArray(state.rawMaterials)?state.rawMaterials:[];
   const materialMap=new Map();
   existing.forEach(m=>{
+    const hasSplitStock=m.stockWipKg!==undefined||m.stockWhKg!==undefined;
     const normalized={
       id:m.id||makeMaterialId(),
       material:itemMaterial(m),
       grade:itemGrade(m),
       country:String(m.country||"").trim(),
       company:String(m.company||"").trim(),
-      stockKg:Number(m.stockKg ?? m.kg)||0
+      stockWipKg:Number(m.stockWipKg)||0,
+      stockWhKg:hasSplitStock?(Number(m.stockWhKg)||0):(Number(m.stockKg ?? m.kg)||0)
     };
     if(normalized.material||normalized.grade) materialMap.set(itemKey(normalized),normalized);
   });
@@ -626,7 +631,7 @@ function migrateState(){
       const stock=state.stocks.find(s=>itemKey(s)===key);
       materialMap.set(key,{
         id:makeMaterialId(),material:itemMaterial(i),grade:itemGrade(i),
-        country:"",company:"",stockKg:Number(stock?.kg)||0
+        country:"",company:"",stockWipKg:0,stockWhKg:Number(stock?.kg)||0
       });
     }
   }));
@@ -635,9 +640,9 @@ function migrateState(){
     const key=itemKey(s);
     if(materialMap.has(key)){
       const current=materialMap.get(key);
-      if(!current.stockKg)current.stockKg=Number(s.kg)||0;
+      if(!current.stockWipKg&&!current.stockWhKg)current.stockWhKg=Number(s.kg)||0;
     }else{
-      materialMap.set(key,{id:makeMaterialId(),material:itemMaterial(s),grade:itemGrade(s),country:"",company:"",stockKg:Number(s.kg)||0});
+      materialMap.set(key,{id:makeMaterialId(),material:itemMaterial(s),grade:itemGrade(s),country:"",company:"",stockWipKg:0,stockWhKg:Number(s.kg)||0});
     }
   });
   state.rawMaterials=[...materialMap.values()];
@@ -774,9 +779,9 @@ function renderRawMaterials(){
       const b=(m2.material||"").toLowerCase();
       return b.localeCompare(a);
     }else if(sortBy==="stock"){
-      return (Number(m2.stockKg||0))-(Number(m1.stockKg||0));
+      return materialTotalStock(m2)-materialTotalStock(m1);
     }else if(sortBy==="stock-asc"){
-      return (Number(m1.stockKg||0))-(Number(m2.stockKg||0));
+      return materialTotalStock(m1)-materialTotalStock(m2);
     }
     return 0;
   });
@@ -792,15 +797,20 @@ function renderRawMaterials(){
       <td><input value="${esc(m.grade||"")}" placeholder="Grade / Trade Name"></td>
       <td><input value="${esc(m.country||"")}" placeholder="Country"></td>
       <td><input value="${esc(m.company||"")}" placeholder="Company"></td>
-      <td><input class="num" type="text" inputmode="decimal" value="${formatKgInput(m.stockKg||0)}"></td>
+      <td><input class="num" type="text" inputmode="decimal" value="${formatKgInput(m.stockWipKg||0)}"></td>
+      <td><input class="num" type="text" inputmode="decimal" value="${formatKgInput(m.stockWhKg||0)}"></td>
+      <td class="num"><strong>${formatKgInput(materialTotalStock(m))}</strong></td>
       <td class="center"><button class="btn danger">×</button></td>`;
     const inputs=tr.querySelectorAll("input");
+    const totalCell=tr.querySelector("td:nth-child(7) strong");
     inputs[0].oninput=e=>{m.material=e.target.value;save()};
     inputs[1].oninput=e=>{m.grade=e.target.value;save()};
     inputs[2].oninput=e=>{m.country=e.target.value;save()};
     inputs[3].oninput=e=>{m.company=e.target.value;save()};
-    inputs[4].oninput=e=>{m.stockKg=parseKgInput(e.target.value);save()};
-    inputs[4].onblur=e=>{m.stockKg=parseKgInput(e.target.value);e.target.value=formatKgInput(m.stockKg);save()};
+    inputs[4].oninput=e=>{m.stockWipKg=parseKgInput(e.target.value);totalCell.textContent=formatKgInput(materialTotalStock(m));save()};
+    inputs[4].onblur=e=>{m.stockWipKg=parseKgInput(e.target.value);e.target.value=formatKgInput(m.stockWipKg);totalCell.textContent=formatKgInput(materialTotalStock(m));save()};
+    inputs[5].oninput=e=>{m.stockWhKg=parseKgInput(e.target.value);totalCell.textContent=formatKgInput(materialTotalStock(m));save()};
+    inputs[5].onblur=e=>{m.stockWhKg=parseKgInput(e.target.value);e.target.value=formatKgInput(m.stockWhKg);totalCell.textContent=formatKgInput(materialTotalStock(m));save()};
     tr.querySelector("button").onclick=()=>{
       const label=fullItemLabel(m);
       if(!confirm(`Delete raw material "${label}"? Existing recipes will not be deleted.`))return;
@@ -1110,7 +1120,9 @@ function importRawMaterialsFromRows(rows){
   const gradeKey=findKey(["GRADE / TRADE NAME","Grade / Trade Name","Grade","Trade Name"]);
   const countryKey=findKey(["COUNTRY","Country","Country of Origin"]);
   const companyKey=findKey(["COMPANY","Company","Manufacturer","Supplier"]);
-  const stockKey=findKey(["STOCK KG","Stock KG","Stock","Stock (kg)"]);
+  const stockWipKey=findKey(["STOCK WIP KG","Stock WIP (kg)","Stock WIP","WIP Stock (kg)","WIP"]);
+  const stockWhKey=findKey(["STOCK WH KG","Stock WH (kg)","Stock WH","Warehouse Stock (kg)","WH"]);
+  const legacyStockKey=findKey(["STOCK KG","Stock KG","Stock","Stock (kg)"]);
   if(!materialKey) throw new Error('Sheet "Raw materials" must contain a MATERIAL NAME column.');
 
   let added=0,replaced=0;
@@ -1122,7 +1134,8 @@ function importRawMaterialsFromRows(rows){
       grade:gradeKey?String(row[gradeKey]??"").trim():"",
       country:countryKey?String(row[countryKey]??"").trim():"",
       company:companyKey?String(row[companyKey]??"").trim():"",
-      stockKg:stockKey?parseKgInput(row[stockKey]):0
+      stockWipKg:stockWipKey?parseKgInput(row[stockWipKey]):0,
+      stockWhKg:stockWhKey?parseKgInput(row[stockWhKey]):(legacyStockKey?parseKgInput(row[legacyStockKey]):0)
     };
     const existingIndex=state.rawMaterials.findIndex(m=>
       norm(m.material)===norm(material)&&norm(m.grade)===norm(incoming.grade)
@@ -1205,12 +1218,12 @@ function downloadExcelTemplate(){
   const workbook=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook,sheet,"Recipes Import");
   const rawData=[
-    ["MATERIAL NAME","GRADE / TRADE NAME","COUNTRY","COMPANY","STOCK KG"],
-    ["PVC Resin","PVC K-67","Saudi Arabia","SABIC",33000],
-    ["Stabilizer","SAG-1015","UAE","Sun Ace",15500]
+    ["MATERIAL NAME","GRADE / TRADE NAME","COUNTRY","COMPANY","STOCK WIP KG","STOCK WH KG"],
+    ["PVC Resin","PVC K-67","Saudi Arabia","SABIC",2000,31000],
+    ["Stabilizer","SAG-1015","UAE","Sun Ace",500,15000]
   ];
   const rawSheet=XLSX.utils.aoa_to_sheet(rawData);
-  rawSheet["!cols"]=[{wch:24},{wch:26},{wch:20},{wch:24},{wch:16}];
+  rawSheet["!cols"]=[{wch:24},{wch:26},{wch:20},{wch:24},{wch:16},{wch:16}];
   XLSX.utils.book_append_sheet(workbook,rawSheet,"Raw materials");
   XLSX.writeFile(workbook,"Material_Planner_Import_Template.xlsx");
 }
@@ -1223,7 +1236,7 @@ function exportCompleteBackup(){
   const recipes=state.recipes.map((r,i)=>({"Recipe Key":keys[i],"Recipe Code":r.code||"","Production Code":r.productionCode||"","Recipe Name":r.name||"","Category":r.category||"General","Color":r.color||"","PVC Resin Base (kg)":Number(r.pvcBase)||0,"Selected":r.selected?"Yes":"No","Daily Production (kg/day)":Number(r.dailyProduction)||0}));
   const ingredients=[];
   state.recipes.forEach((r,i)=>(r.ingredients||[]).forEach((item,line)=>ingredients.push({"Recipe Key":keys[i],"Line No":line+1,"Material":itemMaterial(item),"Grade / Trade Name":itemGrade(item),"Actual kg / Batch":Number(item.kg)||0})));
-  const materials=(state.rawMaterials||[]).map(m=>({"Material ID":m.id||makeMaterialId(),"Material Name":itemMaterial(m),"Grade / Trade Name":itemGrade(m),"Country":m.country||"","Company":m.company||"","Stock (kg)":Number(m.stockKg)||0}));
+  const materials=(state.rawMaterials||[]).map(m=>({"Material ID":m.id||makeMaterialId(),"Material Name":itemMaterial(m),"Grade / Trade Name":itemGrade(m),"Country":m.country||"","Company":m.company||"","Stock WIP (kg)":Number(m.stockWipKg)||0,"Stock WH (kg)":Number(m.stockWhKg)||0,"Total Stock (kg)":materialTotalStock(m)}));
   const stocks=(state.stocks||[]).map(s=>({"Material":itemMaterial(s),"Grade / Trade Name":itemGrade(s),"Stock (kg)":Number(s.kg)||0}));
   [[info,"Backup Info"],[recipes,"Recipes"],[ingredients,"Ingredients"],[materials,"Raw Materials"],[stocks,"Stock"]].forEach(([rows,name])=>XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),name));
   XLSX.writeFile(wb,`Material_Planner_Backup_${new Date().toISOString().slice(0,10)}.xlsx`);
@@ -1247,7 +1260,14 @@ async function importCompleteBackup(file){
     ingredients:(ingredientMap.get(String(row["Recipe Key"]||""))||[]).sort((a,b)=>a.line-b.line).map(({material,grade,kg})=>({material,grade,kg}))
   })).filter(r=>r.ingredients.length);
   if(!recipes.length)throw new Error("No valid recipes were found in the backup.");
-  const rawMaterials=materialRows.map(row=>({id:String(row["Material ID"]||makeMaterialId()),material:String(row["Material Name"]||""),grade:String(row["Grade / Trade Name"]||""),country:String(row.Country||""),company:String(row.Company||""),stockKg:Number(row["Stock (kg)"])||0})).filter(m=>m.material||m.grade);
+  const rawMaterials=materialRows.map(row=>{
+    const hasSplitStock=row["Stock WIP (kg)"]!==undefined||row["Stock WH (kg)"]!==undefined;
+    return {
+      id:String(row["Material ID"]||makeMaterialId()),material:String(row["Material Name"]||""),grade:String(row["Grade / Trade Name"]||""),country:String(row.Country||""),company:String(row.Company||""),
+      stockWipKg:Number(row["Stock WIP (kg)"])||0,
+      stockWhKg:hasSplitStock?(Number(row["Stock WH (kg)"])||0):(Number(row["Stock (kg)"])||0)
+    };
+  }).filter(m=>m.material||m.grade);
   const stocks=stockRows.map(row=>({material:String(row.Material||""),grade:String(row["Grade / Trade Name"]||""),kg:Number(row["Stock (kg)"])||0})).filter(s=>s.material||s.grade);
   const activeRow=(infoRows||[]).find(row=>String(row.Field).trim()==="Active Recipe Index");
   state={activeRecipe:Math.min(Math.max(0,Number(activeRow?.Value)||0),recipes.length-1),recipes,rawMaterials,stocks};
@@ -1896,7 +1916,7 @@ document.getElementById("backupFileInput").onchange=async e=>{
   if(!confirm("Import this complete backup? It will replace the current Materials & Recipes data after saving.")){e.target.value="";return}
   try{await importCompleteBackup(file)}catch(error){alert("Backup import failed: "+error.message)}finally{e.target.value=""}
 };
-document.getElementById("newMaterial").onclick=()=>{state.rawMaterials.push({id:makeMaterialId(),material:"",grade:"",country:"",company:"",stockKg:0});save();renderRawMaterials()};
+document.getElementById("newMaterial").onclick=()=>{state.rawMaterials.push({id:makeMaterialId(),material:"",grade:"",country:"",company:"",stockWipKg:0,stockWhKg:0});save();renderRawMaterials()};
 document.getElementById("syncMaterials").onclick=syncRawMaterialsFromRecipes;
 document.getElementById("exportStockCountPdf").onclick=exportStockCountSheetPdf;
 document.getElementById("materialSearch").oninput=renderRawMaterials;

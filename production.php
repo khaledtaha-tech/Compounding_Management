@@ -57,6 +57,32 @@
       .daily-shift-summary { grid-template-columns: 1fr; padding: 14px 16px; }
     }
 
+    .pending-panel {
+      margin: 0 22px 18px;
+      padding: 16px 18px;
+      border: 1px solid color-mix(in srgb, var(--primary) 35%, var(--border));
+      border-radius: 16px;
+      background: color-mix(in srgb, var(--primary) 6%, var(--panel-strong));
+    }
+    .pending-panel.hidden { display: none; }
+    .pending-panel-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .pending-panel-head h3 { margin: 2px 0 4px; font-size: 1.05rem; }
+    .pending-panel-head small { color: var(--muted); }
+    .pending-panel-actions { display: flex; gap: 10px; flex-shrink: 0; }
+    .pending-field { width: 100%; }
+    .pending-panel .table-wrap { margin-top: 0; }
+    @media (max-width: 760px) {
+      .pending-panel { margin: 0 16px 16px; }
+      .pending-panel-head { flex-direction: column; }
+    }
+
     body.auth-locked .app-shell,
     body.auth-locked .modal-backdrop { display: none !important; }
     .auth-screen {
@@ -354,6 +380,7 @@
                 <input id="filterDate" type="date" />
               </label>
               <button id="showAll" class="secondary-button" type="button">Show all</button>
+              <button id="duplicatePreviousDay" class="secondary-button" type="button">Duplicate Previous Day</button>
             </div>
           </div>
 
@@ -382,6 +409,38 @@
                 <span>Pelletizer: <b id="shiftSummaryPelletizer">0.00 kg</b></span>
               </div>
             </article>
+          </div>
+
+          <div id="pendingDuplicatesPanel" class="pending-panel hidden">
+            <div class="pending-panel-head">
+              <div>
+                <p class="eyebrow">REVIEW BEFORE SAVING</p>
+                <h3>Duplicated from <span id="pendingSourceDate">-</span></h3>
+                <small>Edit any value below, remove records you don't need, then save them all.</small>
+              </div>
+              <div class="pending-panel-actions">
+                <button id="discardPending" class="secondary-button" type="button">Discard All</button>
+                <button id="savePending" class="primary-button" type="button">Save All (<span id="pendingCount">0</span>)</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Shift</th>
+                    <th>Section</th>
+                    <th>Equipment</th>
+                    <th>Mix / Application</th>
+                    <th>Color</th>
+                    <th>Batches</th>
+                    <th>Production</th>
+                    <th class="actions-column">Remove</th>
+                  </tr>
+                </thead>
+                <tbody id="pendingRecordsBody"></tbody>
+              </table>
+            </div>
+            <p id="pendingMessage" class="form-message" aria-live="polite"></p>
           </div>
 
           <div class="table-wrap">
