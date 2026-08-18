@@ -6,8 +6,7 @@ const state = {
   searchQuery: '',
   showAll: false,
   editingId: null,
-  legacyBatchMode: false,
-  pendingRecords: []
+  legacyBatchMode: false
 };
 
 const $ = (id) => document.getElementById(id);
@@ -41,17 +40,6 @@ function yesterdayISO() {
 
 function currentMonthISO() {
   return todayISO().slice(0, 7);
-}
-
-function shiftDateISO(dateString, days) {
-  const [year, month, day] = String(dateString).split('-').map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
-}
-
-function makeTempId() {
-  return `pending-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function formatDate(dateString) {
@@ -626,130 +614,6 @@ function selectedEquipment(type) {
   return { id: select.value, name: option?.textContent?.replace(' (historical)', '') || '' };
 }
 
-function setPendingMessage(message = '', type = '') {
-  const el = $('pendingMessage');
-  if (!el) return;
-  el.textContent = message;
-  el.className = `form-message ${type}`.trim();
-}
-
-function renderPendingRecords() {
-  const body = $('pendingRecordsBody');
-  if (!body) return;
-  body.innerHTML = '';
-  $('pendingCount').textContent = state.pendingRecords.length;
-  $('pendingDuplicatesPanel').classList.toggle('hidden', state.pendingRecords.length === 0);
-
-  for (const record of state.pendingRecords) {
-    const isMixer = record.type === 'Mixer';
-    const hasBatchWeight = isMixer && Number(record.batchWeightKg) > 0;
-    const row = document.createElement('tr');
-    row.dataset.tempId = record.tempId;
-    row.innerHTML = `
-      <td>
-        <select class="pending-field" data-field="shift">
-          <option value="Morning" ${record.shift === 'Morning' ? 'selected' : ''}>Morning</option>
-          <option value="Night" ${record.shift === 'Night' ? 'selected' : ''}>Night</option>
-        </select>
-      </td>
-      <td>${escapeHtml(record.type)}</td>
-      <td><strong>${escapeHtml(recordEquipmentName(record))}</strong></td>
-      <td>${escapeHtml(recordMixDetail(record))}</td>
-      <td><input class="pending-field" data-field="color" type="text" value="${escapeHtml(record.color || '')}" /></td>
-      <td>${isMixer
-        ? `<input class="pending-field" data-field="batchCount" type="number" min="0" step="any" inputmode="decimal" value="${Number(record.batchCount) > 0 ? formatBatchCount(record.batchCount) : ''}" />`
-        : '—'}</td>
-      <td><input class="pending-field" data-field="quantityKg" type="number" min="0" step="0.01" value="${round2(record.quantityKg).toFixed(2)}" ${hasBatchWeight ? 'readonly' : ''} /></td>
-      <td class="actions-column"><button class="action-btn delete" type="button" data-remove-pending="${escapeHtml(record.tempId)}">Remove</button></td>
-    `;
-    body.appendChild(row);
-  }
-}
-
-function duplicatePreviousDay() {
-  const targetDate = state.filterDate || todayISO();
-  const sourceDate = shiftDateISO(targetDate, -1);
-  const sourceRecords = state.records.filter((record) => record.date === sourceDate);
-
-  if (!sourceRecords.length) {
-    setPendingMessage(`No production records found for ${formatDate(sourceDate)}.`, 'error');
-    $('pendingDuplicatesPanel').classList.toggle('hidden', state.pendingRecords.length === 0);
-    return;
-  }
-
-  state.pendingRecords = sourceRecords.map((record) => ({
-    ...record,
-    tempId: makeTempId()
-  })).map((record) => ({ ...record, date: targetDate }));
-
-  $('pendingSourceDate').textContent = formatDate(sourceDate);
-  renderPendingRecords();
-  setPendingMessage(`${state.pendingRecords.length} record(s) copied from ${formatDate(sourceDate)} to ${formatDate(targetDate)}. Review, then Save All.`, 'success');
-  $('pendingDuplicatesPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-function discardPendingRecords() {
-  if (!state.pendingRecords.length) return;
-  if (!confirm('Discard all duplicated records? Nothing will be saved.')) return;
-  state.pendingRecords = [];
-  renderPendingRecords();
-  setPendingMessage('');
-}
-
-async function savePendingRecords() {
-  if (!state.pendingRecords.length) return;
-  const button = $('savePending');
-  button.disabled = true;
-  setPendingMessage('Saving...');
-
-  let saved = 0;
-  const failures = [];
-
-  for (const record of [...state.pendingRecords]) {
-    const payload = {
-      type: record.type,
-      date: record.date,
-      shift: record.shift,
-      color: (record.color || '').trim(),
-      quantityKg: round2(record.quantityKg),
-      batchCount: record.type === 'Mixer' ? record.batchCount : null,
-      batchWeightKg: record.type === 'Mixer' ? record.batchWeightKg : null,
-      mixerId: record.type === 'Mixer' ? record.mixerId : '',
-      mixerName: record.type === 'Mixer' ? record.mixerName : '',
-      pelletizerId: record.type === 'Pelletizer' ? record.pelletizerId : '',
-      pelletizerName: record.type === 'Pelletizer' ? record.pelletizerName : '',
-      mixCode: record.type === 'Mixer' ? record.mixCode : '',
-      recipeCode: record.type === 'Mixer' ? record.recipeCode : '',
-      mixName: record.type === 'Mixer' ? record.mixName : '',
-      application: record.type === 'Pelletizer' ? record.application : ''
-    };
-
-    try {
-      const response = await apiFetch('api.php?action=records', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const data = response.status === 204 ? null : await response.json();
-      if (!response.ok) throw new Error(data?.error || 'Could not save record.');
-      saved += 1;
-      state.pendingRecords = state.pendingRecords.filter((item) => item.tempId !== record.tempId);
-    } catch (error) {
-      failures.push(`${recordEquipmentName(record)} (${record.shift}): ${error.message}`);
-    }
-  }
-
-  renderPendingRecords();
-  await loadRecords();
-  button.disabled = false;
-
-  if (failures.length) {
-    setPendingMessage(`${saved} saved, ${failures.length} failed — ${failures.join(' | ')}`, 'error');
-  } else {
-    setPendingMessage(`${saved} record(s) saved successfully.`, 'success');
-  }
-}
-
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
   setMessage('Saving...');
@@ -879,6 +743,92 @@ $('equipmentForm').addEventListener('submit', async (event) => {
   }
 });
 
+function getPreviousDateString(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d));
+  date.setUTCDate(date.getUTCDate() - 1);
+  return date.toISOString().slice(0, 10);
+}
+
+async function duplicatePreviousDayRecords() {
+  const targetDate = $('filterDate').value || todayISO();
+  const defaultPrevDate = getPreviousDateString(targetDate);
+  const olderDates = [...new Set(state.records.map(r => r.date))]
+    .filter(d => d < targetDate)
+    .sort()
+    .reverse();
+
+  const sourceDate = olderDates.includes(defaultPrevDate) 
+    ? defaultPrevDate 
+    : (olderDates[0] || defaultPrevDate);
+
+  const prevRecords = state.records.filter(r => r.date === sourceDate);
+
+  if (!prevRecords.length) {
+    alert(`No production records found for previous date (${formatDate(sourceDate)}).`);
+    return;
+  }
+
+  const targetExisting = state.records.filter(r => r.date === targetDate);
+  let confirmMsg = `Duplicate ${prevRecords.length} record(s) from ${formatDate(sourceDate)} to ${formatDate(targetDate)}?`;
+  if (targetExisting.length > 0) {
+    confirmMsg += `\n\nNote: ${targetDate} already has ${targetExisting.length} record(s). New duplicates will be added.`;
+  }
+
+  if (!confirm(confirmMsg)) return;
+
+  const btn = $('duplicatePreviousDay');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Duplicating...';
+
+  try {
+    for (const r of prevRecords) {
+      const isMixer = r.type === 'Mixer';
+      const payload = {
+        type: r.type,
+        date: targetDate,
+        shift: r.shift,
+        color: r.color || '',
+        quantityKg: round2(r.quantityKg),
+        batchCount: isMixer && Number(r.batchCount) > 0 ? Number(r.batchCount) : null,
+        batchWeightKg: isMixer && Number(r.batchWeightKg) > 0 ? Number(r.batchWeightKg) : null,
+        mixerId: isMixer ? (r.mixerId || '') : '',
+        mixerName: isMixer ? (r.mixerName || '') : '',
+        pelletizerId: !isMixer ? (r.pelletizerId || '') : '',
+        pelletizerName: !isMixer ? (r.pelletizerName || '') : '',
+        mixCode: isMixer ? (r.mixCode || '') : '',
+        recipeCode: isMixer ? (r.recipeCode || '') : '',
+        mixName: isMixer ? (r.mixName || '') : '',
+        application: !isMixer ? (r.application || '') : ''
+      };
+
+      const res = await apiFetch('api.php?action=records', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to save duplicate record.');
+      }
+    }
+
+    state.filterDate = targetDate;
+    state.showAll = false;
+    $('filterDate').value = targetDate;
+    await loadRecords();
+    setMessage(`Successfully duplicated ${prevRecords.length} record(s) to ${formatDate(targetDate)}.`, 'success');
+  } catch (error) {
+    console.error(error);
+    alert('Duplication failed: ' + error.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
 document.querySelectorAll('.segment').forEach((button) => {
   button.addEventListener('click', () => setProductionType(button.dataset.type));
 });
@@ -915,48 +865,14 @@ $('filterDate').addEventListener('change', (event) => {
   state.filterDate = event.target.value;
   state.showAll = false;
   renderRecords();
-  if (state.pendingRecords.length) {
-    state.pendingRecords = [];
-    renderPendingRecords();
-    setPendingMessage('');
-  }
 });
 $('showAll').addEventListener('click', () => {
   state.showAll = true;
   renderRecords();
 });
-
-$('duplicatePreviousDay').addEventListener('click', duplicatePreviousDay);
-$('savePending').addEventListener('click', savePendingRecords);
-$('discardPending').addEventListener('click', discardPendingRecords);
-
-$('pendingRecordsBody').addEventListener('input', (event) => {
-  const row = event.target.closest('tr');
-  if (!row) return;
-  const record = state.pendingRecords.find((item) => item.tempId === row.dataset.tempId);
-  if (!record) return;
-  const field = event.target.dataset.field;
-
-  if (field === 'shift') record.shift = event.target.value;
-  if (field === 'color') record.color = event.target.value;
-  if (field === 'quantityKg') record.quantityKg = Number(event.target.value) || 0;
-  if (field === 'batchCount') {
-    const value = event.target.value;
-    record.batchCount = value === '' ? null : Number(value);
-    if (Number(record.batchWeightKg) > 0 && Number(record.batchCount) > 0) {
-      record.quantityKg = round2(record.batchCount * record.batchWeightKg);
-      const quantityInput = row.querySelector('[data-field="quantityKg"]');
-      if (quantityInput) quantityInput.value = record.quantityKg.toFixed(2);
-    }
-  }
-});
-
-$('pendingRecordsBody').addEventListener('click', (event) => {
-  const tempId = event.target.dataset.removePending;
-  if (!tempId) return;
-  state.pendingRecords = state.pendingRecords.filter((item) => item.tempId !== tempId);
-  renderPendingRecords();
-});
+if ($('duplicatePreviousDay')) {
+  $('duplicatePreviousDay').addEventListener('click', duplicatePreviousDayRecords);
+}
 $('themeSelect').addEventListener('change', (event) => {
   setTheme(event.target.value);
 });
