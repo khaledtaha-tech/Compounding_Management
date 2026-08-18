@@ -132,16 +132,19 @@ function productionCodeForRecipe(recipe) {
   return match ? `${match[1].toUpperCase()}-${String(Number(match[2])).padStart(2, '0')}` : '';
 }
 
-function productionNameForRecipe(recipe) {
-  return String(recipe?.name || '')
+function cleanDisplayMixName(name) {
+  return String(name || '')
     .replace(/([\s,;-])(MP|MF)\s*-\s*\d+(?=$|[\s,;.-])/ig, '')
-    .replace(/\b\d+\b/g, '')
+    .replace(/\b\d+(\.\d+)?\b/g, '')
     .replace(/\s+,/g, ',')
-    .replace(/,{2,}/g, ',')
-    .replace(/[\s,;-]+$/g, '')
-    .replace(/^[\s,;-]+/g, '')
+    .replace(/,\s*,+/g, ',')
+    .replace(/^[,\s-]+|[,\s-]+$/g, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
+}
+
+function productionNameForRecipe(recipe) {
+  return cleanDisplayMixName(recipe?.name || '');
 }
 
 function recipeColor(recipe) {
@@ -409,7 +412,7 @@ function editRecord(id) {
     else {
       $('mixCode').value = record.mixCode || '';
       $('recipeCode').value = record.recipeCode || '';
-      $('mixName').value = record.mixName || '';
+      $('mixName').value = cleanDisplayMixName(record.mixName || '');
     }
     setBatchWeight(Number(record.batchWeightKg) > 0 ? record.batchWeightKg : recipeBatchWeight(recipe));
     $('batchCount').value = Number(record.batchCount) > 0 ? formatBatchCount(record.batchCount) : '';
@@ -453,7 +456,7 @@ function duplicateRecord(id) {
     else {
       $('mixCode').value = record.mixCode || '';
       $('recipeCode').value = record.recipeCode || '';
-      $('mixName').value = record.mixName || '';
+      $('mixName').value = cleanDisplayMixName(record.mixName || '');
     }
     setBatchWeight(Number(record.batchWeightKg) > 0 ? record.batchWeightKg : recipeBatchWeight(recipe));
     $('batchCount').value = Number(record.batchCount) > 0 ? formatBatchCount(record.batchCount) : '';
@@ -558,14 +561,19 @@ function recordEquipmentName(record) {
 
 function recordMixDetail(record) {
   if (record.type === 'Mixer') {
-    const parts = [record.mixCode, record.mixName].filter(Boolean);
+    const parts = [record.mixCode, cleanDisplayMixName(record.mixName)].filter(Boolean);
     return parts.length ? parts.join(' — ') : '—';
   }
   return record.application || '—';
 }
 
+function sortByShift(recordsList) {
+  const rank = { 'Morning': 1, 'Night': 2, 'Evening': 2 };
+  return [...recordsList].sort((a, b) => (rank[a.shift] || 9) - (rank[b.shift] || 9));
+}
+
 function renderRecords() {
-  const records = visibleRecords();
+  const records = sortByShift(visibleRecords());
   renderSummary(records);
   recordsBody.innerHTML = '';
   emptyState.classList.toggle('hidden', records.length !== 0);
@@ -649,7 +657,7 @@ form.addEventListener('submit', async (event) => {
     pelletizerName: type === 'Pelletizer' ? equipment.name : '',
     mixCode: type === 'Mixer' ? (recipe ? productionCodeForRecipe(recipe) : $('mixCode').value.trim()) : '',
     recipeCode: type === 'Mixer' ? (recipe ? normalizedCode(recipe.code) : $('recipeCode').value.trim()) : '',
-    mixName: type === 'Mixer' ? (recipe ? productionNameForRecipe(recipe) : $('mixName').value.trim()) : '',
+    mixName: type === 'Mixer' ? (recipe ? productionNameForRecipe(recipe) : cleanDisplayMixName($('mixName').value)) : '',
     application: type === 'Pelletizer' ? $('application').value.trim() : ''
   };
 
@@ -800,7 +808,7 @@ async function duplicatePreviousDayRecords() {
         pelletizerName: !isMixer ? (r.pelletizerName || '') : '',
         mixCode: isMixer ? (r.mixCode || '') : '',
         recipeCode: isMixer ? (r.recipeCode || '') : '',
-        mixName: isMixer ? (r.mixName || '') : '',
+        mixName: isMixer ? cleanDisplayMixName(r.mixName || '') : '',
         application: !isMixer ? (r.application || '') : ''
       };
 
@@ -1023,19 +1031,19 @@ function drawDailyTable(pdf, title, startY, head, rows, colorColumn, density) {
 
   const columnStyles = title.startsWith('Mixer')
     ? {
-        0: { cellWidth: 20 },
-        1: { cellWidth: 24 },
+        0: { cellWidth: 23 },
+        1: { cellWidth: 25 },
         2: { cellWidth: 17 },
-        3: { cellWidth: 56 },
+        3: { cellWidth: 54 },
         4: { cellWidth: 16, halign: 'right' },
-        5: { cellWidth: 20 },
-        6: { cellWidth: 29, halign: 'right' }
+        5: { cellWidth: 19 },
+        6: { cellWidth: 28, halign: 'right' }
       }
     : {
-        0: { cellWidth: 22 },
-        1: { cellWidth: 38 },
-        2: { cellWidth: 54 },
-        3: { cellWidth: 30 },
+        0: { cellWidth: 24 },
+        1: { cellWidth: 40 },
+        2: { cellWidth: 52 },
+        3: { cellWidth: 28 },
         4: { cellWidth: 38, halign: 'right' }
       };
 
@@ -1116,15 +1124,16 @@ function exportDailyPdf(date) {
   drawDailyKpi(pdf, 14, 64, 89, 'Pelletizer Production', formatKg(totals.pelletizer));
   drawDailyKpi(pdf, 107, 64, 89, 'Production Records', String(records.length));
 
-  const mixerRecords = records.filter((record) => record.type === 'Mixer');
-  const pelletizerRecords = records.filter((record) => record.type === 'Pelletizer');
+  const mixerRecords = sortByShift(records.filter((record) => record.type === 'Mixer'));
+  const pelletizerRecords = sortByShift(records.filter((record) => record.type === 'Pelletizer'));
   const density = records.length;
   const layout = dailyReportLayout(density);
+
   const mixerRows = mixerRecords.map((record) => [
     record.shift,
     recordEquipmentName(record),
     record.mixCode || '',
-    record.mixName || '',
+    cleanDisplayMixName(record.mixName || ''),
     Number(record.batchCount) > 0 ? formatBatchCount(record.batchCount) : '-',
     record.color || '',
     round2(record.quantityKg).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -1157,7 +1166,7 @@ function exportDailyPdf(date) {
   );
 
   const morningTotal = records.filter((record) => record.shift === 'Morning').reduce((sum, record) => sum + Number(record.quantityKg || 0), 0);
-  const nightTotal = records.filter((record) => record.shift === 'Night').reduce((sum, record) => sum + Number(record.quantityKg || 0), 0);
+  const nightTotal = records.filter((record) => record.shift === 'Night' || record.shift === 'Evening').reduce((sum, record) => sum + Number(record.quantityKg || 0), 0);
   const summaryY = Math.min(276, y + layout.summaryGap);
   pdf.setFillColor(235, 243, 254);
   pdf.rect(14, summaryY, 182, layout.summaryHeight, 'F');
@@ -1228,10 +1237,12 @@ $('exportMonthlyPdf').addEventListener('click', () => {
 
 function exportExcelBackup() {
   if (typeof XLSX === 'undefined') throw new Error('Excel library could not be loaded.');
-  const production = state.records.map((r) => ({
+  const sortedRecords = sortByShift(state.records);
+  const production = sortedRecords.map((r) => ({
     'Record ID': r.id, 'Type': r.type, 'Date': r.date, 'Shift': r.shift,
     'Equipment ID': r.type === 'Mixer' ? r.mixerId : r.pelletizerId,
-    'Equipment Name': recordEquipmentName(r), 'Mix Code': r.mixCode || '', 'Recipe Code': r.recipeCode || '', 'Mix Name': r.mixName || '',
+    'Equipment Name': recordEquipmentName(r), 'Mix Code': r.mixCode || '', 'Recipe Code': r.recipeCode || '',
+    'Mix Name': cleanDisplayMixName(r.mixName || ''),
     'Pellet Application': r.application || '', 'Color': r.color,
     'No. of Batches': r.type === 'Mixer' && Number(r.batchCount) > 0 ? Number(r.batchCount) : '',
     'Batch Weight (kg)': r.type === 'Mixer' && Number(r.batchWeightKg) > 0 ? Number(r.batchWeightKg) : '',
@@ -1280,7 +1291,9 @@ async function importProductionBackup(file) {
       shift: String(r.Shift || 'Morning') === 'Evening' ? 'Night' : String(r.Shift || 'Morning'),
       mixerId: type === 'Mixer' ? String(r['Equipment ID'] || '') : '', mixerName: type === 'Mixer' ? String(r['Equipment Name'] || '') : '',
       pelletizerId: type === 'Pelletizer' ? String(r['Equipment ID'] || '') : '', pelletizerName: type === 'Pelletizer' ? String(r['Equipment Name'] || '') : '',
-      mixCode: String(r['Mix Code'] || ''), recipeCode: String(r['Recipe Code'] || ''), mixName: String(r['Mix Name'] || ''), application: String(r['Pellet Application'] || ''),
+      mixCode: String(r['Mix Code'] || ''), recipeCode: String(r['Recipe Code'] || ''),
+      mixName: cleanDisplayMixName(String(r['Mix Name'] || '')),
+      application: String(r['Pellet Application'] || ''),
       color: String(r.Color || ''),
       batchCount: type === 'Mixer' && Number(r['No. of Batches']) > 0 ? Number(r['No. of Batches']) : null,
       batchWeightKg: type === 'Mixer' && Number(r['Batch Weight (kg)']) > 0 ? Number(r['Batch Weight (kg)']) : null,
