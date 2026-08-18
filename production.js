@@ -132,7 +132,7 @@ function productionCodeForRecipe(recipe) {
   return match ? `${match[1].toUpperCase()}-${String(Number(match[2])).padStart(2, '0')}` : '';
 }
 
-function cleanPdfMixName(name) {
+function cleanMixNameText(name) {
   return String(name || '')
     .replace(/([\s,;-])(MP|MF)\s*-\s*\d+(?=$|[\s,;.-])/ig, '')
     .replace(/\b\d+(\.\d+)?\b/g, '')
@@ -144,7 +144,7 @@ function cleanPdfMixName(name) {
 }
 
 function productionNameForRecipe(recipe) {
-  return cleanPdfMixName(recipe?.name || '');
+  return cleanMixNameText(recipe?.name || '');
 }
 
 function recipeColor(recipe) {
@@ -412,7 +412,7 @@ function editRecord(id) {
     else {
       $('mixCode').value = record.mixCode || '';
       $('recipeCode').value = record.recipeCode || '';
-      $('mixName').value = cleanPdfMixName(record.mixName || '');
+      $('mixName').value = cleanMixNameText(record.mixName || '');
     }
     setBatchWeight(Number(record.batchWeightKg) > 0 ? record.batchWeightKg : recipeBatchWeight(recipe));
     $('batchCount').value = Number(record.batchCount) > 0 ? formatBatchCount(record.batchCount) : '';
@@ -456,7 +456,7 @@ function duplicateRecord(id) {
     else {
       $('mixCode').value = record.mixCode || '';
       $('recipeCode').value = record.recipeCode || '';
-      $('mixName').value = cleanPdfMixName(record.mixName || '');
+      $('mixName').value = cleanMixNameText(record.mixName || '');
     }
     setBatchWeight(Number(record.batchWeightKg) > 0 ? record.batchWeightKg : recipeBatchWeight(recipe));
     $('batchCount').value = Number(record.batchCount) > 0 ? formatBatchCount(record.batchCount) : '';
@@ -561,14 +561,18 @@ function recordEquipmentName(record) {
 
 function recordMixDetail(record) {
   if (record.type === 'Mixer') {
-    const parts = [record.mixCode, cleanPdfMixName(record.mixName)].filter(Boolean);
+    const parts = [record.mixCode, cleanMixNameText(record.mixName)].filter(Boolean);
     return parts.length ? parts.join(' — ') : '—';
   }
   return record.application || '—';
 }
 
 function sortByShift(recordsList) {
-  return [...recordsList].sort((a, b) => (a.shift === 'Morning' ? -1 : 1));
+  return [...recordsList].sort((a, b) => {
+    if (a.shift === 'Morning' && b.shift !== 'Morning') return -1;
+    if (a.shift !== 'Morning' && b.shift === 'Morning') return 1;
+    return 0;
+  });
 }
 
 function renderRecords() {
@@ -656,7 +660,7 @@ form.addEventListener('submit', async (event) => {
     pelletizerName: type === 'Pelletizer' ? equipment.name : '',
     mixCode: type === 'Mixer' ? (recipe ? productionCodeForRecipe(recipe) : $('mixCode').value.trim()) : '',
     recipeCode: type === 'Mixer' ? (recipe ? normalizedCode(recipe.code) : $('recipeCode').value.trim()) : '',
-    mixName: type === 'Mixer' ? (recipe ? productionNameForRecipe(recipe) : cleanPdfMixName($('mixName').value)) : '',
+    mixName: type === 'Mixer' ? (recipe ? productionNameForRecipe(recipe) : cleanMixNameText($('mixName').value)) : '',
     application: type === 'Pelletizer' ? $('application').value.trim() : ''
   };
 
@@ -807,7 +811,7 @@ async function duplicatePreviousDayRecords() {
         pelletizerName: !isMixer ? (r.pelletizerName || '') : '',
         mixCode: isMixer ? (r.mixCode || '') : '',
         recipeCode: isMixer ? (r.recipeCode || '') : '',
-        mixName: isMixer ? cleanPdfMixName(r.mixName || '') : '',
+        mixName: isMixer ? cleanMixNameText(r.mixName || '') : '',
         application: !isMixer ? (r.application || '') : ''
       };
 
@@ -987,85 +991,61 @@ function drawDailyKpi(pdf, x, y, width, label, value) {
   pdf.text(value, x + 4, y + 13.2);
 }
 
-function dailyReportLayout(density) {
-  if (density <= 8) {
-    return { titleFontSize: 11, titleGap: 4, fontSize: 9.2, headFontSize: 8.7, cellPadding: 3.2, sectionGap: 11, summaryGap: 8, summaryHeight: 14, summaryFontSize: 9.2, swatchSize: 4 };
-  }
-  if (density <= 12) {
-    return { titleFontSize: 10.5, titleGap: 3.7, fontSize: 8.4, headFontSize: 8, cellPadding: 2.6, sectionGap: 9, summaryGap: 7, summaryHeight: 13, summaryFontSize: 8.8, swatchSize: 3.7 };
-  }
-  if (density <= 18) {
-    return { titleFontSize: 10, titleGap: 3.4, fontSize: 7.2, headFontSize: 7, cellPadding: 1.7, sectionGap: 7, summaryGap: 5, summaryHeight: 12, summaryFontSize: 8.2, swatchSize: 3.4 };
-  }
-  if (density <= 26) {
-    return { titleFontSize: 9.5, titleGap: 3.1, fontSize: 6.3, headFontSize: 6.1, cellPadding: 1.45, sectionGap: 5.5, summaryGap: 4, summaryHeight: 11, summaryFontSize: 7.6, swatchSize: 3.1 };
-  }
-  if (density <= 34) {
-    return { titleFontSize: 9, titleGap: 2.8, fontSize: 5.5, headFontSize: 5.3, cellPadding: 1.15, sectionGap: 4.5, summaryGap: 3.5, summaryHeight: 10, summaryFontSize: 7, swatchSize: 2.8 };
-  }
-  if (density <= 42) {
-    return { titleFontSize: 8.5, titleGap: 2.5, fontSize: 4.8, headFontSize: 4.8, cellPadding: 0.85, sectionGap: 4, summaryGap: 3, summaryHeight: 9, summaryFontSize: 6.4, swatchSize: 2.5 };
-  }
-  return { titleFontSize: 8, titleGap: 2.3, fontSize: 4, headFontSize: 4.5, cellPadding: 0.3, sectionGap: 2.5, summaryGap: 2, summaryHeight: 8, summaryFontSize: 6, swatchSize: 2.1 };
-}
-
-function drawDailyTable(pdf, title, startY, head, rows, colorColumn, density) {
-  const layout = dailyReportLayout(density);
+function drawDailyTable(pdf, title, startY, head, rows, colorColumn) {
   pdf.setTextColor(37, 99, 235);
   pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(layout.titleFontSize);
+  pdf.setFontSize(10);
   pdf.text(title, 14, startY);
 
   if (!rows.length) {
     pdf.setFillColor(248, 250, 252);
     pdf.setDrawColor(226, 232, 240);
-    const emptyHeight = density <= 12 ? 11 : 8;
-    pdf.rect(14, startY + layout.titleGap, 182, emptyHeight, 'FD');
+    pdf.rect(14, startY + 4, 182, 8, 'FD');
     pdf.setTextColor(100, 116, 139);
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(layout.fontSize);
-    pdf.text(`No ${title.toLowerCase()} records.`, 17, startY + layout.titleGap + emptyHeight / 2 + 1.1);
-    return startY + layout.titleGap + emptyHeight;
+    pdf.setFontSize(7.5);
+    pdf.text(`No ${title.toLowerCase()} records.`, 17, startY + 9);
+    return startY + 12;
   }
 
   const columnStyles = title.startsWith('Mixer')
     ? {
-        0: { cellWidth: 24 },
-        1: { cellWidth: 26 },
-        2: { cellWidth: 18 },
-        3: { cellWidth: 50 },
-        4: { cellWidth: 16, halign: 'right' },
-        5: { cellWidth: 20 },
-        6: { cellWidth: 28, halign: 'right' }
+        0: { cellWidth: 22 }, // Shift
+        1: { cellWidth: 26 }, // Mixer
+        2: { cellWidth: 18 }, // Mix Code
+        3: { cellWidth: 54 }, // Mix Name
+        4: { cellWidth: 16, halign: 'right' }, // Batches
+        5: { cellWidth: 18 }, // Color
+        6: { cellWidth: 28, halign: 'right' }  // Production (kg)
       }
     : {
-        0: { cellWidth: 25 },
-        1: { cellWidth: 40 },
-        2: { cellWidth: 49 },
-        3: { cellWidth: 30 },
+        0: { cellWidth: 24 },
+        1: { cellWidth: 42 },
+        2: { cellWidth: 50 },
+        3: { cellWidth: 28 },
         4: { cellWidth: 38, halign: 'right' }
       };
 
   pdf.autoTable({
-    startY: startY + layout.titleGap,
+    startY: startY + 4,
     head: [head],
     body: rows,
     theme: 'grid',
     styles: {
       font: 'helvetica',
-      fontSize: layout.fontSize,
+      fontSize: 7.2,
       textColor: [24, 48, 83],
       lineColor: [216, 226, 240],
       lineWidth: 0.2,
-      cellPadding: layout.cellPadding,
-      overflow: 'ellipsize',
+      cellPadding: 1.5,
+      overflow: 'linebreak',
       valign: 'middle'
     },
     headStyles: {
       fillColor: [233, 241, 253],
       textColor: [28, 67, 121],
       fontStyle: 'bold',
-      fontSize: layout.headFontSize,
+      fontSize: 7.5,
       lineColor: [216, 226, 240]
     },
     alternateRowStyles: { fillColor: [248, 250, 253] },
@@ -1073,11 +1053,10 @@ function drawDailyTable(pdf, title, startY, head, rows, colorColumn, density) {
     margin: { left: 14, right: 14 },
     didParseCell(data) {
       if (data.row.section === 'body' && data.column.index === colorColumn) {
-        const padding = data.cell.styles.cellPadding;
         data.cell.styles.cellPadding = {
-          top: typeof padding === 'number' ? padding : padding.top,
-          right: typeof padding === 'number' ? padding : padding.right,
-          bottom: typeof padding === 'number' ? padding : padding.bottom,
+          top: 1.5,
+          right: 1.5,
+          bottom: 1.5,
           left: 6.2
         };
       }
@@ -1085,7 +1064,7 @@ function drawDailyTable(pdf, title, startY, head, rows, colorColumn, density) {
     didDrawCell(data) {
       if (data.row.section !== 'body' || data.column.index !== colorColumn) return;
       const rgb = reportColorRgb(data.cell.raw);
-      const size = Math.min(layout.swatchSize, Math.max(2, data.cell.height - 2));
+      const size = 3;
       const y = data.cell.y + (data.cell.height - size) / 2;
       pdf.setFillColor(...rgb);
       pdf.setDrawColor(148, 163, 184);
@@ -1125,14 +1104,12 @@ function exportDailyPdf(date) {
 
   const mixerRecords = sortByShift(records.filter((record) => record.type === 'Mixer'));
   const pelletizerRecords = sortByShift(records.filter((record) => record.type === 'Pelletizer'));
-  const density = records.length;
-  const layout = dailyReportLayout(density);
 
   const mixerRows = mixerRecords.map((record) => [
     record.shift,
     recordEquipmentName(record),
     record.mixCode || '',
-    cleanPdfMixName(record.mixName || ''),
+    cleanMixNameText(record.mixName || ''),
     Number(record.batchCount) > 0 ? formatBatchCount(record.batchCount) : '-',
     record.color || '',
     round2(record.quantityKg).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -1151,28 +1128,26 @@ function exportDailyPdf(date) {
     89,
     ['Shift', 'Mixer', 'Mix Code', 'Mix Name', 'Batches', 'Color', 'Production (kg)'],
     mixerRows,
-    5,
-    density
+    5
   );
   y = drawDailyTable(
     pdf,
     'Pelletizer Production',
-    y + layout.sectionGap,
+    y + 7,
     ['Shift', 'Pelletizer', 'Pellet Application', 'Color', 'Production (kg)'],
     pelletizerRows,
-    3,
-    density
+    3
   );
 
   const morningTotal = records.filter((record) => record.shift === 'Morning').reduce((sum, record) => sum + Number(record.quantityKg || 0), 0);
   const nightTotal = records.filter((record) => record.shift === 'Night' || record.shift === 'Evening').reduce((sum, record) => sum + Number(record.quantityKg || 0), 0);
-  const summaryY = Math.min(276, y + layout.summaryGap);
+  const summaryY = Math.min(276, y + 6);
   pdf.setFillColor(235, 243, 254);
-  pdf.rect(14, summaryY, 182, layout.summaryHeight, 'F');
+  pdf.rect(14, summaryY, 182, 12, 'F');
   pdf.setTextColor(28, 67, 121);
   pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(layout.summaryFontSize);
-  const summaryTextY = summaryY + layout.summaryHeight / 2 + layout.summaryFontSize / 7;
+  pdf.setFontSize(8.5);
+  const summaryTextY = summaryY + 7;
   pdf.text(`Morning Total: ${formatKg(morningTotal)}`, 20, summaryTextY);
   pdf.text(`Night Total: ${formatKg(nightTotal)}`, 190, summaryTextY, { align: 'right' });
 
@@ -1241,7 +1216,7 @@ function exportExcelBackup() {
     'Record ID': r.id, 'Type': r.type, 'Date': r.date, 'Shift': r.shift,
     'Equipment ID': r.type === 'Mixer' ? r.mixerId : r.pelletizerId,
     'Equipment Name': recordEquipmentName(r), 'Mix Code': r.mixCode || '', 'Recipe Code': r.recipeCode || '',
-    'Mix Name': cleanPdfMixName(r.mixName || ''),
+    'Mix Name': cleanMixNameText(r.mixName || ''),
     'Pellet Application': r.application || '', 'Color': r.color,
     'No. of Batches': r.type === 'Mixer' && Number(r.batchCount) > 0 ? Number(r.batchCount) : '',
     'Batch Weight (kg)': r.type === 'Mixer' && Number(r.batchWeightKg) > 0 ? Number(r.batchWeightKg) : '',
@@ -1291,7 +1266,7 @@ async function importProductionBackup(file) {
       mixerId: type === 'Mixer' ? String(r['Equipment ID'] || '') : '', mixerName: type === 'Mixer' ? String(r['Equipment Name'] || '') : '',
       pelletizerId: type === 'Pelletizer' ? String(r['Equipment ID'] || '') : '', pelletizerName: type === 'Pelletizer' ? String(r['Equipment Name'] || '') : '',
       mixCode: String(r['Mix Code'] || ''), recipeCode: String(r['Recipe Code'] || ''),
-      mixName: cleanPdfMixName(String(r['Mix Name'] || '')),
+      mixName: cleanMixNameText(String(r['Mix Name'] || '')),
       application: String(r['Pellet Application'] || ''),
       color: String(r.Color || ''),
       batchCount: type === 'Mixer' && Number(r['No. of Batches']) > 0 ? Number(r['No. of Batches']) : null,
