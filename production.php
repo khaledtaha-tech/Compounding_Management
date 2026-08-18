@@ -177,7 +177,6 @@
             <option value="arctic">Arctic Blue · Light</option>
             <option value="indigo">Pearl Indigo · Light</option>
             <option value="violet">Soft Violet · Light</option>
-            <option value="midnight">Midnight Blue · Dark</option>
             <option value="graphite">Graphite Violet · Dark</option>
           </select>
         </label>

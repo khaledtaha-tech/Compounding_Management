@@ -6,60 +6,102 @@ $message = '';
 $error = '';
 try {
     $pdo = db();
-    $pdo->exec("CREATE TABLE IF NOT EXISTS users (
-        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-        email VARCHAR(190) NOT NULL UNIQUE,
-        password_hash VARCHAR(255) NOT NULL,
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-    $pdo->exec("CREATE TABLE IF NOT EXISTS equipment (
-        id VARCHAR(80) PRIMARY KEY,
-        user_id INT UNSIGNED NOT NULL,
-        type ENUM('Mixer','Pelletizer') NOT NULL,
-        name VARCHAR(100) NOT NULL,
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE KEY uq_equipment (user_id, type, name),
-        CONSTRAINT fk_equipment_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-    $pdo->exec("CREATE TABLE IF NOT EXISTS production_records (
-        id VARCHAR(80) PRIMARY KEY,
-        user_id INT UNSIGNED NOT NULL,
-        type ENUM('Mixer','Pelletizer') NOT NULL,
-        production_date DATE NOT NULL,
-        shift ENUM('Morning','Night') NOT NULL,
-        equipment_id VARCHAR(80) NULL,
-        equipment_name VARCHAR(100) NOT NULL,
-        mix_code VARCHAR(80) NULL,
-        recipe_code VARCHAR(80) NULL,
-        mix_name VARCHAR(190) NULL,
-        pellet_application VARCHAR(190) NULL,
-        color VARCHAR(100) NOT NULL,
-        batch_count DECIMAL(12,3) NULL,
-        batch_weight_kg DECIMAL(14,4) NULL,
-        quantity_kg DECIMAL(14,2) NOT NULL,
-        created_at DATETIME NOT NULL,
-        updated_at DATETIME NOT NULL,
-        INDEX idx_production_user_date (user_id, production_date),
-        CONSTRAINT fk_production_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-    $recipeCodeColumn = $pdo->query("SHOW COLUMNS FROM production_records LIKE 'recipe_code'")->fetch();
-    if (!$recipeCodeColumn) {
-        $pdo->exec("ALTER TABLE production_records ADD COLUMN recipe_code VARCHAR(80) NULL AFTER mix_code");
+    $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+    if ($driver === 'sqlite') {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email VARCHAR(190) NOT NULL UNIQUE,
+            password_hash VARCHAR(255) NOT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )");
+        $pdo->exec("CREATE TABLE IF NOT EXISTS equipment (
+            id VARCHAR(80) PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            type VARCHAR(20) NOT NULL,
+            name VARCHAR(100) NOT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (user_id, type, name)
+        )");
+        $pdo->exec("CREATE TABLE IF NOT EXISTS production_records (
+            id VARCHAR(80) PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            type VARCHAR(20) NOT NULL,
+            production_date DATE NOT NULL,
+            shift VARCHAR(20) NOT NULL,
+            equipment_id VARCHAR(80) NULL,
+            equipment_name VARCHAR(100) NOT NULL,
+            mix_code VARCHAR(80) NULL,
+            recipe_code VARCHAR(80) NULL,
+            mix_name VARCHAR(190) NULL,
+            pellet_application VARCHAR(190) NULL,
+            color VARCHAR(100) NOT NULL,
+            batch_count DECIMAL(12,3) NULL,
+            batch_weight_kg DECIMAL(14,4) NULL,
+            quantity_kg DECIMAL(14,2) NOT NULL,
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME NOT NULL
+        )");
+        $pdo->exec("CREATE TABLE IF NOT EXISTS material_states (
+            user_id INTEGER PRIMARY KEY,
+            state_json TEXT NOT NULL,
+            updated_at DATETIME NOT NULL
+        )");
+    } else {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS users (
+            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            email VARCHAR(190) NOT NULL UNIQUE,
+            password_hash VARCHAR(255) NOT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        $pdo->exec("CREATE TABLE IF NOT EXISTS equipment (
+            id VARCHAR(80) PRIMARY KEY,
+            user_id INT UNSIGNED NOT NULL,
+            type ENUM('Mixer','Pelletizer') NOT NULL,
+            name VARCHAR(100) NOT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_equipment (user_id, type, name),
+            CONSTRAINT fk_equipment_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        $pdo->exec("CREATE TABLE IF NOT EXISTS production_records (
+            id VARCHAR(80) PRIMARY KEY,
+            user_id INT UNSIGNED NOT NULL,
+            type ENUM('Mixer','Pelletizer') NOT NULL,
+            production_date DATE NOT NULL,
+            shift ENUM('Morning','Night') NOT NULL,
+            equipment_id VARCHAR(80) NULL,
+            equipment_name VARCHAR(100) NOT NULL,
+            mix_code VARCHAR(80) NULL,
+            recipe_code VARCHAR(80) NULL,
+            mix_name VARCHAR(190) NULL,
+            pellet_application VARCHAR(190) NULL,
+            color VARCHAR(100) NOT NULL,
+            batch_count DECIMAL(12,3) NULL,
+            batch_weight_kg DECIMAL(14,4) NULL,
+            quantity_kg DECIMAL(14,2) NOT NULL,
+            created_at DATETIME NOT NULL,
+            updated_at DATETIME NOT NULL,
+            INDEX idx_production_user_date (user_id, production_date),
+            CONSTRAINT fk_production_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        $recipeCodeColumn = $pdo->query("SHOW COLUMNS FROM production_records LIKE 'recipe_code'")->fetch();
+        if (!$recipeCodeColumn) {
+            $pdo->exec("ALTER TABLE production_records ADD COLUMN recipe_code VARCHAR(80) NULL AFTER mix_code");
+        }
+        $batchCountColumn = $pdo->query("SHOW COLUMNS FROM production_records LIKE 'batch_count'")->fetch();
+        if (!$batchCountColumn) {
+            $pdo->exec("ALTER TABLE production_records ADD COLUMN batch_count DECIMAL(12,3) NULL AFTER color");
+        }
+        $batchWeightColumn = $pdo->query("SHOW COLUMNS FROM production_records LIKE 'batch_weight_kg'")->fetch();
+        if (!$batchWeightColumn) {
+            $pdo->exec("ALTER TABLE production_records ADD COLUMN batch_weight_kg DECIMAL(14,4) NULL AFTER batch_count");
+        }
+        $pdo->exec("CREATE TABLE IF NOT EXISTS material_states (
+            user_id INT UNSIGNED PRIMARY KEY,
+            state_json LONGTEXT NOT NULL,
+            updated_at DATETIME NOT NULL,
+            CONSTRAINT fk_material_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     }
-    $batchCountColumn = $pdo->query("SHOW COLUMNS FROM production_records LIKE 'batch_count'")->fetch();
-    if (!$batchCountColumn) {
-        $pdo->exec("ALTER TABLE production_records ADD COLUMN batch_count DECIMAL(12,3) NULL AFTER color");
-    }
-    $batchWeightColumn = $pdo->query("SHOW COLUMNS FROM production_records LIKE 'batch_weight_kg'")->fetch();
-    if (!$batchWeightColumn) {
-        $pdo->exec("ALTER TABLE production_records ADD COLUMN batch_weight_kg DECIMAL(14,4) NULL AFTER batch_count");
-    }
-    $pdo->exec("CREATE TABLE IF NOT EXISTS material_states (
-        user_id INT UNSIGNED PRIMARY KEY,
-        state_json LONGTEXT NOT NULL,
-        updated_at DATETIME NOT NULL,
-        CONSTRAINT fk_material_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
     $count = (int) $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn();
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && $count === 0) {

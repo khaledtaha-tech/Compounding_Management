@@ -21,18 +21,21 @@ function iso_now(): string
 }
 
 try {
+    $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
     if (empty($_SESSION['compounding_schema_v5'])) {
-        $recipeCodeColumn = $pdo->query("SHOW COLUMNS FROM production_records LIKE 'recipe_code'")->fetch();
-        if (!$recipeCodeColumn) {
-            $pdo->exec("ALTER TABLE production_records ADD COLUMN recipe_code VARCHAR(80) NULL AFTER mix_code");
-        }
-        $batchCountColumn = $pdo->query("SHOW COLUMNS FROM production_records LIKE 'batch_count'")->fetch();
-        if (!$batchCountColumn) {
-            $pdo->exec("ALTER TABLE production_records ADD COLUMN batch_count DECIMAL(12,3) NULL AFTER color");
-        }
-        $batchWeightColumn = $pdo->query("SHOW COLUMNS FROM production_records LIKE 'batch_weight_kg'")->fetch();
-        if (!$batchWeightColumn) {
-            $pdo->exec("ALTER TABLE production_records ADD COLUMN batch_weight_kg DECIMAL(14,4) NULL AFTER batch_count");
+        if ($driver === 'mysql') {
+            $recipeCodeColumn = $pdo->query("SHOW COLUMNS FROM production_records LIKE 'recipe_code'")->fetch();
+            if (!$recipeCodeColumn) {
+                $pdo->exec("ALTER TABLE production_records ADD COLUMN recipe_code VARCHAR(80) NULL AFTER mix_code");
+            }
+            $batchCountColumn = $pdo->query("SHOW COLUMNS FROM production_records LIKE 'batch_count'")->fetch();
+            if (!$batchCountColumn) {
+                $pdo->exec("ALTER TABLE production_records ADD COLUMN batch_count DECIMAL(12,3) NULL AFTER color");
+            }
+            $batchWeightColumn = $pdo->query("SHOW COLUMNS FROM production_records LIKE 'batch_weight_kg'")->fetch();
+            if (!$batchWeightColumn) {
+                $pdo->exec("ALTER TABLE production_records ADD COLUMN batch_weight_kg DECIMAL(14,4) NULL AFTER batch_count");
+            }
         }
         $_SESSION['compounding_schema_v5'] = true;
     }
@@ -59,7 +62,11 @@ try {
             if ($name === '') json_response(['error' => 'Equipment name is required.'], 422);
             $id = clean((string) ($body['id'] ?? ''), 80);
             if ($id === '') $id = strtolower($type) . '-' . bin2hex(random_bytes(8));
-            $stmt = $pdo->prepare('INSERT INTO equipment (id,user_id,type,name) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE name=VALUES(name)');
+            if ($driver === 'sqlite') {
+                $stmt = $pdo->prepare('INSERT INTO equipment (id,user_id,type,name) VALUES (?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name');
+            } else {
+                $stmt = $pdo->prepare('INSERT INTO equipment (id,user_id,type,name) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE name=VALUES(name)');
+            }
             $stmt->execute([$id, $user['id'], $type, $name]);
             json_response(['id' => $id, 'name' => $name, 'type' => $type], 201);
         }
@@ -142,7 +149,11 @@ try {
             $created = iso_now();
             if ($method === 'POST') {
                 if ($id === '') $id = bin2hex(random_bytes(10));
-                $stmt = $pdo->prepare('INSERT INTO production_records (id,user_id,type,production_date,shift,equipment_id,equipment_name,mix_code,recipe_code,mix_name,pellet_application,color,batch_count,batch_weight_kg,quantity_kg,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE type=VALUES(type),production_date=VALUES(production_date),shift=VALUES(shift),equipment_id=VALUES(equipment_id),equipment_name=VALUES(equipment_name),mix_code=VALUES(mix_code),recipe_code=VALUES(recipe_code),mix_name=VALUES(mix_name),pellet_application=VALUES(pellet_application),color=VALUES(color),batch_count=VALUES(batch_count),batch_weight_kg=VALUES(batch_weight_kg),quantity_kg=VALUES(quantity_kg),updated_at=VALUES(updated_at)');
+                if ($driver === 'sqlite') {
+                    $stmt = $pdo->prepare('INSERT INTO production_records (id,user_id,type,production_date,shift,equipment_id,equipment_name,mix_code,recipe_code,mix_name,pellet_application,color,batch_count,batch_weight_kg,quantity_kg,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET type=excluded.type,production_date=excluded.production_date,shift=excluded.shift,equipment_id=excluded.equipment_id,equipment_name=excluded.equipment_name,mix_code=excluded.mix_code,recipe_code=excluded.recipe_code,mix_name=excluded.mix_name,pellet_application=excluded.pellet_application,color=excluded.color,batch_count=excluded.batch_count,batch_weight_kg=excluded.batch_weight_kg,quantity_kg=excluded.quantity_kg,updated_at=excluded.updated_at');
+                } else {
+                    $stmt = $pdo->prepare('INSERT INTO production_records (id,user_id,type,production_date,shift,equipment_id,equipment_name,mix_code,recipe_code,mix_name,pellet_application,color,batch_count,batch_weight_kg,quantity_kg,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE type=VALUES(type),production_date=VALUES(production_date),shift=VALUES(shift),equipment_id=VALUES(equipment_id),equipment_name=VALUES(equipment_name),mix_code=VALUES(mix_code),recipe_code=VALUES(recipe_code),mix_name=VALUES(mix_name),pellet_application=VALUES(pellet_application),color=VALUES(color),batch_count=VALUES(batch_count),batch_weight_kg=VALUES(batch_weight_kg),quantity_kg=VALUES(quantity_kg),updated_at=VALUES(updated_at)');
+                }
                 $stmt->execute([$id,$user['id'],$type,$date,$shift,$equipmentId ?: null,$equipmentName,$mixCode ?: null,$recipeCode ?: null,$mixName ?: null,$application ?: null,$color,$batchCount,$batchWeight,$quantity,$created,$created]);
             } else {
                 if ($id === '') json_response(['error' => 'Record ID is required.'], 422);
@@ -171,7 +182,11 @@ try {
             if (!is_array($state) || !isset($state['recipes'])) json_response(['error' => 'Invalid material planner data.'], 422);
             $json = json_encode($state, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             if ($json === false || strlen($json) > 8_000_000) json_response(['error' => 'Material data is too large.'], 413);
-            $stmt = $pdo->prepare('INSERT INTO material_states (user_id,state_json,updated_at) VALUES (?,?,?) ON DUPLICATE KEY UPDATE state_json=VALUES(state_json),updated_at=VALUES(updated_at)');
+            if ($driver === 'sqlite') {
+                $stmt = $pdo->prepare('INSERT INTO material_states (user_id,state_json,updated_at) VALUES (?,?,?) ON CONFLICT(user_id) DO UPDATE SET state_json=excluded.state_json,updated_at=excluded.updated_at');
+            } else {
+                $stmt = $pdo->prepare('INSERT INTO material_states (user_id,state_json,updated_at) VALUES (?,?,?) ON DUPLICATE KEY UPDATE state_json=VALUES(state_json),updated_at=VALUES(updated_at)');
+            }
             $stmt->execute([$user['id'],$json,iso_now()]);
             json_response(['ok' => true]);
         }

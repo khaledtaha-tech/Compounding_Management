@@ -72,12 +72,11 @@ const THEMES = {
   arctic: { mode: 'light', color: '#2563eb' },
   indigo: { mode: 'light', color: '#4f46e5' },
   violet: { mode: 'light', color: '#8b5cf6' },
-  midnight: { mode: 'dark', color: '#0b1220' },
   graphite: { mode: 'dark', color: '#14131b' }
 };
 
 function setTheme(theme) {
-  const selected = THEMES[theme] ? theme : 'arctic';
+  const selected = (THEMES[theme] && theme !== 'midnight') ? theme : 'arctic';
   document.documentElement.dataset.theme = selected;
   localStorage.setItem('production-theme', selected);
   if ($('themeSelect')) $('themeSelect').value = selected;
@@ -87,11 +86,9 @@ function setTheme(theme) {
 
 function initTheme() {
   let saved = localStorage.getItem('production-theme');
-  if (saved === 'light') saved = 'arctic';
-  if (saved === 'dark') saved = 'midnight';
+  if (saved === 'light' || saved === 'midnight' || saved === 'dark') saved = 'arctic';
   if (saved && THEMES[saved]) return setTheme(saved);
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  setTheme(prefersDark ? 'midnight' : 'arctic');
+  setTheme('arctic');
 }
 
 function equipmentListForType(type) {
@@ -977,86 +974,106 @@ function reportColorRgb(color) {
   return colors.find(([names]) => names.some((name) => value.includes(name)))?.[1] || [203, 213, 225];
 }
 
-function drawDailyKpi(pdf, x, y, width, label, value) {
-  pdf.setFillColor(247, 250, 255);
-  pdf.setDrawColor(211, 223, 242);
+function drawDailyKpiCard(pdf, x, y, width, height, label, value, bgRgb, borderRgb, labelRgb, valueRgb) {
+  pdf.setFillColor(...bgRgb);
+  pdf.setDrawColor(...borderRgb);
   pdf.setLineWidth(0.25);
-  pdf.rect(x, y, width, 17, 'FD');
-  pdf.setTextColor(78, 101, 139);
+  pdf.roundedRect(x, y, width, height, 1.5, 1.5, 'FD');
+  
+  pdf.setTextColor(...labelRgb);
   pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(7.3);
-  pdf.text(label.toUpperCase(), x + 4, y + 5.5);
-  pdf.setTextColor(15, 35, 67);
-  pdf.setFontSize(12.3);
-  pdf.text(value, x + 4, y + 13.2);
+  pdf.setFontSize(6.8);
+  pdf.text(label.toUpperCase(), x + 3.5, y + 5.2);
+  
+  pdf.setTextColor(...valueRgb);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(11);
+  pdf.text(value, x + 3.5, y + 12.5);
 }
 
-function drawDailyTable(pdf, title, startY, head, rows, colorColumn) {
-  pdf.setTextColor(37, 99, 235);
+function drawDailyTable(pdf, title, startY, head, rows, colorColumn, padding = 1.5) {
+  // Full-width colored background banner for section headers with accent indicator dot
+  const isMixer = title.startsWith('Mixer');
+  const bannerBg = isMixer ? [239, 246, 255] : [245, 243, 255];
+  const bannerBorder = isMixer ? [219, 234, 254] : [237, 233, 254];
+  const dotColor = isMixer ? [37, 99, 235] : [124, 58, 237];
+  const titleColor = isMixer ? [30, 64, 175] : [91, 33, 182];
+
+  pdf.setFillColor(...bannerBg);
+  pdf.setDrawColor(...bannerBorder);
+  pdf.setLineWidth(0.3);
+  pdf.roundedRect(14, startY, 182, 7.5, 1, 1, 'FD');
+
+  // Accent Dot
+  pdf.setFillColor(...dotColor);
+  pdf.circle(18, startY + 3.8, 1.3, 'F');
+
+  pdf.setTextColor(...titleColor);
   pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(10);
-  pdf.text(title, 14, startY);
+  pdf.setFontSize(8.8);
+  pdf.text(title.toUpperCase(), 22, startY + 5.1);
 
   if (!rows.length) {
     pdf.setFillColor(248, 250, 252);
     pdf.setDrawColor(226, 232, 240);
-    pdf.rect(14, startY + 4, 182, 8, 'FD');
+    pdf.rect(14, startY + 9, 182, 8, 'FD');
     pdf.setTextColor(100, 116, 139);
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(7.5);
-    pdf.text(`No ${title.toLowerCase()} records.`, 17, startY + 9);
-    return startY + 12;
+    pdf.text(`No ${title.toLowerCase()} records.`, 17, startY + 14);
+    return startY + 18;
   }
 
-  const columnStyles = title.startsWith('Mixer')
+  const columnStyles = isMixer
     ? {
-        0: { cellWidth: 22 }, // Shift
+        0: { cellWidth: 20, halign: 'center' }, // Shift
         1: { cellWidth: 26 }, // Mixer
-        2: { cellWidth: 18 }, // Mix Code
+        2: { cellWidth: 18, halign: 'center' }, // Mix Code
         3: { cellWidth: 54 }, // Mix Name
-        4: { cellWidth: 16, halign: 'right' }, // Batches
+        4: { cellWidth: 18, halign: 'center', fontStyle: 'bold' }, // Batches (centered & bold)
         5: { cellWidth: 18 }, // Color
-        6: { cellWidth: 28, halign: 'right' }  // Production (kg)
+        6: { cellWidth: 28, halign: 'center', fontStyle: 'bold' }  // Production (kg) (centered & bold)
       }
     : {
-        0: { cellWidth: 24 },
-        1: { cellWidth: 42 },
-        2: { cellWidth: 50 },
-        3: { cellWidth: 28 },
-        4: { cellWidth: 38, halign: 'right' }
+        0: { cellWidth: 22, halign: 'center' }, // Shift
+        1: { cellWidth: 42 }, // Pelletizer
+        2: { cellWidth: 52 }, // Pellet Application
+        3: { cellWidth: 28 }, // Color
+        4: { cellWidth: 38, halign: 'center', fontStyle: 'bold' } // Production (kg) (centered & bold)
       };
 
   pdf.autoTable({
-    startY: startY + 4,
+    startY: startY + 9,
     head: [head],
     body: rows,
     theme: 'grid',
     styles: {
       font: 'helvetica',
       fontSize: 7.2,
-      textColor: [24, 48, 83],
-      lineColor: [216, 226, 240],
+      textColor: [30, 41, 59],
+      lineColor: [226, 232, 240],
       lineWidth: 0.2,
-      cellPadding: 1.5,
+      cellPadding: padding,
       overflow: 'linebreak',
       valign: 'middle'
     },
     headStyles: {
-      fillColor: [233, 241, 253],
-      textColor: [28, 67, 121],
+      fillColor: [241, 245, 249],
+      textColor: [71, 85, 105],
       fontStyle: 'bold',
       fontSize: 7.5,
-      lineColor: [216, 226, 240]
+      halign: 'center',
+      lineColor: [226, 232, 240]
     },
-    alternateRowStyles: { fillColor: [248, 250, 253] },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
     columnStyles,
     margin: { left: 14, right: 14 },
     didParseCell(data) {
       if (data.row.section === 'body' && data.column.index === colorColumn) {
         data.cell.styles.cellPadding = {
-          top: 1.5,
+          top: padding,
           right: 1.5,
-          bottom: 1.5,
+          bottom: padding,
           left: 6.2
         };
       }
@@ -1083,24 +1100,50 @@ function exportDailyPdf(date) {
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const totals = productionBreakdown(records);
 
+  // Outer Page Border frame with rounded corners
+  pdf.setDrawColor(37, 99, 235);
+  pdf.setLineWidth(0.6);
+  pdf.roundedRect(7, 6, 196, 283, 3, 3, 'S');
+  pdf.setDrawColor(191, 219, 254);
+  pdf.setLineWidth(0.2);
+  pdf.roundedRect(8, 7, 194, 281, 2, 2, 'S');
+
+  // Header Banner
   pdf.setFillColor(37, 99, 235);
-  pdf.rect(14, 10, 182, 29, 'F');
+  pdf.rect(14, 10, 182, 28, 'F');
   pdf.setFillColor(147, 197, 253);
-  pdf.rect(14, 10, 2.6, 29, 'F');
+  pdf.rect(14, 10, 2.6, 28, 'F');
+  
   pdf.setTextColor(255, 255, 255);
   pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(8.2);
-  pdf.text('COMPOUNDING SECTION', 21, 18);
-  pdf.setFontSize(17.2);
-  pdf.text('Daily Production Report', 21, 28);
+  pdf.setFontSize(8.0);
+  pdf.text('COMPOUNDING SECTION', 21, 17.5);
+  pdf.setFontSize(16.5);
+  pdf.text('Daily Production Report', 21, 27);
   pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(8.2);
-  pdf.text(`Production Date: ${productionDateLabel(date)}`, 21, 35);
+  pdf.setFontSize(8.0);
+  pdf.text(`Production Date: ${productionDateLabel(date)}   |   Plant: Unit A`, 21, 34);
 
-  drawDailyKpi(pdf, 14, 44, 89, 'Total Production', formatKg(totals.total));
-  drawDailyKpi(pdf, 107, 44, 89, 'Mixer Production', formatKg(totals.mixer));
-  drawDailyKpi(pdf, 14, 64, 89, 'Pelletizer Production', formatKg(totals.pelletizer));
-  drawDailyKpi(pdf, 107, 64, 89, 'Production Records', String(records.length));
+  // Right Header Text (No Emojis)
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(11);
+  pdf.text('COMPOUNDING', 190, 19, { align: 'right' });
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(7.5);
+  pdf.setTextColor(219, 234, 254);
+  pdf.text('MANAGEMENT SYSTEM', 190, 24.5, { align: 'right' });
+  const nowStr = new Date().toLocaleDateString('en-GB') + ' ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  pdf.text(`Generated: ${nowStr}`, 190, 31, { align: 'right' });
+
+  // KPI 4-Card Grid (x: 14, 60.5, 107, 153.5 - width: 42.5mm each)
+  const cardW = 42.5;
+  const kpiY = 42;
+  const kpiH = 16;
+  
+  drawDailyKpiCard(pdf, 14, kpiY, cardW, kpiH, 'Total Production', formatKg(totals.total), [15, 23, 42], [15, 23, 42], [148, 163, 184], [255, 255, 255]);
+  drawDailyKpiCard(pdf, 60.5, kpiY, cardW, kpiH, 'Mixer Output', formatKg(totals.mixer), [239, 246, 255], [219, 234, 254], [37, 99, 235], [15, 23, 42]);
+  drawDailyKpiCard(pdf, 107, kpiY, cardW, kpiH, 'Pelletizer Output', formatKg(totals.pelletizer), [245, 243, 255], [237, 233, 254], [124, 58, 237], [15, 23, 42]);
+  drawDailyKpiCard(pdf, 153.5, kpiY, cardW, kpiH, 'Records Logged', String(records.length) + ' Records', [248, 250, 252], [226, 232, 240], [100, 116, 139], [15, 23, 42]);
 
   const mixerRecords = sortByShift(records.filter((record) => record.type === 'Mixer'));
   const pelletizerRecords = sortByShift(records.filter((record) => record.type === 'Pelletizer'));
@@ -1122,39 +1165,78 @@ function exportDailyPdf(date) {
     round2(record.quantityKg).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   ]);
 
+  const totalRowCount = mixerRows.length + pelletizerRows.length;
+  let dynamicPadding = 1.6;
+  let interTableGap = 6;
+  if (totalRowCount <= 4) {
+    dynamicPadding = 3.8;
+    interTableGap = 10;
+  } else if (totalRowCount <= 8) {
+    dynamicPadding = 3.0;
+    interTableGap = 8;
+  } else if (totalRowCount <= 14) {
+    dynamicPadding = 2.2;
+    interTableGap = 6;
+  }
+
   let y = drawDailyTable(
     pdf,
     'Mixer Production',
-    89,
+    64,
     ['Shift', 'Mixer', 'Mix Code', 'Mix Name', 'Batches', 'Color', 'Production (kg)'],
     mixerRows,
-    5
+    5,
+    dynamicPadding
   );
   y = drawDailyTable(
     pdf,
     'Pelletizer Production',
-    y + 7,
+    y + interTableGap,
     ['Shift', 'Pelletizer', 'Pellet Application', 'Color', 'Production (kg)'],
     pelletizerRows,
-    3
+    3,
+    dynamicPadding
   );
 
   const morningTotal = records.filter((record) => record.shift === 'Morning').reduce((sum, record) => sum + Number(record.quantityKg || 0), 0);
   const nightTotal = records.filter((record) => record.shift === 'Night' || record.shift === 'Evening').reduce((sum, record) => sum + Number(record.quantityKg || 0), 0);
-  const summaryY = Math.min(276, y + 6);
-  pdf.setFillColor(235, 243, 254);
-  pdf.rect(14, summaryY, 182, 12, 'F');
-  pdf.setTextColor(28, 67, 121);
+  
+  const allDaysRecords = state.records || [];
+  const distinctDays = new Set(allDaysRecords.map((r) => r.date)).size;
+  const totalAllDaysKg = allDaysRecords.reduce((sum, r) => sum + Number(r.quantityKg || 0), 0);
+
+  // Shift Comparison Summary Bar
+  const summaryY = Math.min(256, Math.max(236, y + interTableGap));
+  pdf.setFillColor(248, 250, 252);
+  pdf.setDrawColor(226, 232, 240);
+  pdf.setLineWidth(0.3);
+  pdf.roundedRect(14, summaryY, 182, 13, 2, 2, 'FD');
+
+  pdf.setTextColor(30, 41, 59);
   pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(8.5);
-  const summaryTextY = summaryY + 7;
-  pdf.text(`Morning Total: ${formatKg(morningTotal)}`, 20, summaryTextY);
-  pdf.text(`Night Total: ${formatKg(nightTotal)}`, 190, summaryTextY, { align: 'right' });
+  pdf.setFontSize(8.2);
+  const summaryTextY = summaryY + 8;
+  pdf.text(`Morning Total: ${formatKg(morningTotal)}`, 18, summaryTextY);
+  pdf.text(`Night Total: ${formatKg(nightTotal)}`, 85, summaryTextY);
+  pdf.text(`All-Time Total (${distinctDays} Days): ${formatKg(totalAllDaysKg)}`, 192, summaryTextY, { align: 'right' });
+
+  // Signatures Section (No Emojis)
+  const sigY = summaryY + 18;
+  pdf.setTextColor(100, 116, 139);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(7.2);
+  pdf.text('Shift Supervisor:', 14, sigY);
+  pdf.setDrawColor(203, 213, 225);
+  pdf.setLineWidth(0.3);
+  pdf.line(14, sigY + 6, 60, sigY + 6);
+
+  pdf.text('Quality Inspector:', 85, sigY);
+  pdf.line(85, sigY + 6, 131, sigY + 6);
 
   pdf.setTextColor(100, 116, 139);
   pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(6.5);
-  pdf.text('Page 1 of 1', 196, 291, { align: 'right' });
+  pdf.setFontSize(6.8);
+  pdf.text('Page 1 of 1', 190, 284, { align: 'right' });
   pdf.save(`daily-production-${date}.pdf`);
 }
 
