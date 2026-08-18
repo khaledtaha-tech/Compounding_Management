@@ -132,7 +132,7 @@ function productionCodeForRecipe(recipe) {
   return match ? `${match[1].toUpperCase()}-${String(Number(match[2])).padStart(2, '0')}` : '';
 }
 
-function cleanDisplayMixName(name) {
+function cleanPdfMixName(name) {
   return String(name || '')
     .replace(/([\s,;-])(MP|MF)\s*-\s*\d+(?=$|[\s,;.-])/ig, '')
     .replace(/\b\d+(\.\d+)?\b/g, '')
@@ -144,7 +144,7 @@ function cleanDisplayMixName(name) {
 }
 
 function productionNameForRecipe(recipe) {
-  return cleanDisplayMixName(recipe?.name || '');
+  return cleanPdfMixName(recipe?.name || '');
 }
 
 function recipeColor(recipe) {
@@ -412,7 +412,7 @@ function editRecord(id) {
     else {
       $('mixCode').value = record.mixCode || '';
       $('recipeCode').value = record.recipeCode || '';
-      $('mixName').value = cleanDisplayMixName(record.mixName || '');
+      $('mixName').value = cleanPdfMixName(record.mixName || '');
     }
     setBatchWeight(Number(record.batchWeightKg) > 0 ? record.batchWeightKg : recipeBatchWeight(recipe));
     $('batchCount').value = Number(record.batchCount) > 0 ? formatBatchCount(record.batchCount) : '';
@@ -456,7 +456,7 @@ function duplicateRecord(id) {
     else {
       $('mixCode').value = record.mixCode || '';
       $('recipeCode').value = record.recipeCode || '';
-      $('mixName').value = cleanDisplayMixName(record.mixName || '');
+      $('mixName').value = cleanPdfMixName(record.mixName || '');
     }
     setBatchWeight(Number(record.batchWeightKg) > 0 ? record.batchWeightKg : recipeBatchWeight(recipe));
     $('batchCount').value = Number(record.batchCount) > 0 ? formatBatchCount(record.batchCount) : '';
@@ -561,15 +561,14 @@ function recordEquipmentName(record) {
 
 function recordMixDetail(record) {
   if (record.type === 'Mixer') {
-    const parts = [record.mixCode, cleanDisplayMixName(record.mixName)].filter(Boolean);
+    const parts = [record.mixCode, cleanPdfMixName(record.mixName)].filter(Boolean);
     return parts.length ? parts.join(' — ') : '—';
   }
   return record.application || '—';
 }
 
 function sortByShift(recordsList) {
-  const rank = { 'Morning': 1, 'Night': 2, 'Evening': 2 };
-  return [...recordsList].sort((a, b) => (rank[a.shift] || 9) - (rank[b.shift] || 9));
+  return [...recordsList].sort((a, b) => (a.shift === 'Morning' ? -1 : 1));
 }
 
 function renderRecords() {
@@ -657,7 +656,7 @@ form.addEventListener('submit', async (event) => {
     pelletizerName: type === 'Pelletizer' ? equipment.name : '',
     mixCode: type === 'Mixer' ? (recipe ? productionCodeForRecipe(recipe) : $('mixCode').value.trim()) : '',
     recipeCode: type === 'Mixer' ? (recipe ? normalizedCode(recipe.code) : $('recipeCode').value.trim()) : '',
-    mixName: type === 'Mixer' ? (recipe ? productionNameForRecipe(recipe) : cleanDisplayMixName($('mixName').value)) : '',
+    mixName: type === 'Mixer' ? (recipe ? productionNameForRecipe(recipe) : cleanPdfMixName($('mixName').value)) : '',
     application: type === 'Pelletizer' ? $('application').value.trim() : ''
   };
 
@@ -808,7 +807,7 @@ async function duplicatePreviousDayRecords() {
         pelletizerName: !isMixer ? (r.pelletizerName || '') : '',
         mixCode: isMixer ? (r.mixCode || '') : '',
         recipeCode: isMixer ? (r.recipeCode || '') : '',
-        mixName: isMixer ? cleanDisplayMixName(r.mixName || '') : '',
+        mixName: isMixer ? cleanPdfMixName(r.mixName || '') : '',
         application: !isMixer ? (r.application || '') : ''
       };
 
@@ -1031,19 +1030,19 @@ function drawDailyTable(pdf, title, startY, head, rows, colorColumn, density) {
 
   const columnStyles = title.startsWith('Mixer')
     ? {
-        0: { cellWidth: 23 },
-        1: { cellWidth: 25 },
-        2: { cellWidth: 17 },
-        3: { cellWidth: 54 },
+        0: { cellWidth: 24 },
+        1: { cellWidth: 26 },
+        2: { cellWidth: 18 },
+        3: { cellWidth: 50 },
         4: { cellWidth: 16, halign: 'right' },
-        5: { cellWidth: 19 },
+        5: { cellWidth: 20 },
         6: { cellWidth: 28, halign: 'right' }
       }
     : {
-        0: { cellWidth: 24 },
+        0: { cellWidth: 25 },
         1: { cellWidth: 40 },
-        2: { cellWidth: 52 },
-        3: { cellWidth: 28 },
+        2: { cellWidth: 49 },
+        3: { cellWidth: 30 },
         4: { cellWidth: 38, halign: 'right' }
       };
 
@@ -1133,7 +1132,7 @@ function exportDailyPdf(date) {
     record.shift,
     recordEquipmentName(record),
     record.mixCode || '',
-    cleanDisplayMixName(record.mixName || ''),
+    cleanPdfMixName(record.mixName || ''),
     Number(record.batchCount) > 0 ? formatBatchCount(record.batchCount) : '-',
     record.color || '',
     round2(record.quantityKg).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -1242,7 +1241,7 @@ function exportExcelBackup() {
     'Record ID': r.id, 'Type': r.type, 'Date': r.date, 'Shift': r.shift,
     'Equipment ID': r.type === 'Mixer' ? r.mixerId : r.pelletizerId,
     'Equipment Name': recordEquipmentName(r), 'Mix Code': r.mixCode || '', 'Recipe Code': r.recipeCode || '',
-    'Mix Name': cleanDisplayMixName(r.mixName || ''),
+    'Mix Name': cleanPdfMixName(r.mixName || ''),
     'Pellet Application': r.application || '', 'Color': r.color,
     'No. of Batches': r.type === 'Mixer' && Number(r.batchCount) > 0 ? Number(r.batchCount) : '',
     'Batch Weight (kg)': r.type === 'Mixer' && Number(r.batchWeightKg) > 0 ? Number(r.batchWeightKg) : '',
@@ -1292,7 +1291,7 @@ async function importProductionBackup(file) {
       mixerId: type === 'Mixer' ? String(r['Equipment ID'] || '') : '', mixerName: type === 'Mixer' ? String(r['Equipment Name'] || '') : '',
       pelletizerId: type === 'Pelletizer' ? String(r['Equipment ID'] || '') : '', pelletizerName: type === 'Pelletizer' ? String(r['Equipment Name'] || '') : '',
       mixCode: String(r['Mix Code'] || ''), recipeCode: String(r['Recipe Code'] || ''),
-      mixName: cleanDisplayMixName(String(r['Mix Name'] || '')),
+      mixName: cleanPdfMixName(String(r['Mix Name'] || '')),
       application: String(r['Pellet Application'] || ''),
       color: String(r.Color || ''),
       batchCount: type === 'Mixer' && Number(r['No. of Batches']) > 0 ? Number(r['No. of Batches']) : null,
