@@ -14,7 +14,6 @@ const form = $('productionForm');
 const recordsBody = $('recordsBody');
 const emptyState = $('emptyState');
 
-
 async function apiFetch(url, options = {}) {
   const headers = new Headers(options.headers || {});
   const response = await fetch(url, { ...options, headers, credentials: 'same-origin' });
@@ -136,9 +135,11 @@ function productionCodeForRecipe(recipe) {
 function productionNameForRecipe(recipe) {
   return String(recipe?.name || '')
     .replace(/([\s,;-])(MP|MF)\s*-\s*\d+(?=$|[\s,;.-])/ig, '')
+    .replace(/\b\d+\b/g, '')
     .replace(/\s+,/g, ',')
     .replace(/,{2,}/g, ',')
     .replace(/[\s,;-]+$/g, '')
+    .replace(/^[\s,;-]+/g, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
 }
@@ -1021,8 +1022,22 @@ function drawDailyTable(pdf, title, startY, head, rows, colorColumn, density) {
   }
 
   const columnStyles = title.startsWith('Mixer')
-    ? { 0: { cellWidth: 16 }, 1: { cellWidth: 25 }, 2: { cellWidth: 19 }, 3: { cellWidth: 46 }, 4: { cellWidth: 19, halign: 'right' }, 5: { cellWidth: 25 }, 6: { cellWidth: 32, halign: 'right' } }
-    : { 0: { cellWidth: 22 }, 1: { cellWidth: 38 }, 2: { cellWidth: 49 }, 3: { cellWidth: 35 }, 4: { cellWidth: 38, halign: 'right' } };
+    ? {
+        0: { cellWidth: 20 },
+        1: { cellWidth: 24 },
+        2: { cellWidth: 17 },
+        3: { cellWidth: 56 },
+        4: { cellWidth: 16, halign: 'right' },
+        5: { cellWidth: 20 },
+        6: { cellWidth: 29, halign: 'right' }
+      }
+    : {
+        0: { cellWidth: 22 },
+        1: { cellWidth: 38 },
+        2: { cellWidth: 54 },
+        3: { cellWidth: 30 },
+        4: { cellWidth: 38, halign: 'right' }
+      };
 
   pdf.autoTable({
     startY: startY + layout.titleGap,
@@ -1228,8 +1243,17 @@ function exportExcelBackup() {
     ...state.equipment.pelletizers.map((e) => ({ Type: 'Pelletizer', 'Equipment ID': e.id, 'Equipment Name': e.name }))
   ];
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(production), 'Production');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(equipment), 'Equipment');
+  const wsProduction = XLSX.utils.json_to_sheet(production);
+  wsProduction['!cols'] = [
+    { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 16 },
+    { wch: 22 }, { wch: 14 }, { wch: 14 }, { wch: 32 }, { wch: 24 },
+    { wch: 14 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 22 }, { wch: 22 }
+  ];
+  const wsEquipment = XLSX.utils.json_to_sheet(equipment);
+  wsEquipment['!cols'] = [{ wch: 14 }, { wch: 20 }, { wch: 24 }];
+
+  XLSX.utils.book_append_sheet(wb, wsProduction, 'Production');
+  XLSX.utils.book_append_sheet(wb, wsEquipment, 'Equipment');
   XLSX.writeFile(wb, `Mixer_Production_Backup_${todayISO()}.xlsx`);
 }
 
