@@ -581,7 +581,21 @@ function inferRecipeColor(name){
   if(text.includes("grey")||text.includes("gray"))return "Grey";
   return "";
 }
-
+// دالة لتوليد كود الإنتاج المتسلسل
+function getNextProductionCode(category) {
+  // تحديد البادئة بناءً على القسم (Fitting أو غيره/Pipe)
+  const prefix = (category && category.toLowerCase().includes('fitting')) ? 'MF' : 'MP';
+  
+  // جلب كل الأكواد المستخدمة حالياً للقسم ده
+  const usedNumbers = state.recipes
+    .map(r => r.productionCode)
+    .filter(code => code && code.startsWith(prefix + '-'))
+    .map(code => parseInt(code.split('-')[1] || '0', 10));
+  
+  // حساب أكبر رقم واستخراج اللي بعده
+  const maxNumber = usedNumbers.length > 0 ? Math.max(...usedNumbers) : 0;
+  return `${prefix}-${String(maxNumber + 1).padStart(2, '0')}`;
+}
 function migrateState(){
   state.recipes=(state.recipes||[]).map(r=>{
     const originalName=String(r.name||"").trim();
@@ -1065,6 +1079,10 @@ function importRecipesFromRows(rows,showMessage=true){
   const firstNewRecipeIndex=state.recipes.length;
 
   imported.forEach(recipe=>{
+    if(!recipe.productionCode){
+      recipe.productionCode=getNextProductionCode(recipe.category);
+    }
+
     const existingIndex=state.recipes.findIndex(r=>
       (recipe.code&&String(r.code||"").trim().toUpperCase()===recipe.code)
       ||(!recipe.code&&recipe.productionCode&&normalizedProductionCode(r.productionCode)===recipe.productionCode)
@@ -1090,7 +1108,6 @@ function importRecipesFromRows(rows,showMessage=true){
     added++;
   });
 
-  // Move to the first newly imported recipe only when new recipes were added.
   if(added>0) state.activeRecipe=firstNewRecipeIndex;
 
   save();
