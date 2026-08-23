@@ -109,6 +109,7 @@ function historyValues(selector) {
 }
 
 function fillHistoryList(id, values) {
+  if (!$(id)) return;
   $(id).innerHTML = values.map((value) => `<option value="${escapeHtml(value)}"></option>`).join('');
 }
 
@@ -167,15 +168,17 @@ function formatBatchCount(value) {
 
 function setBatchWeight(value) {
   const number = Number(value);
-  $('batchWeightKg').value = Number.isFinite(number) && number > 0
-    ? number.toFixed(4).replace(/0+$/, '').replace(/\.$/, '')
-    : '';
+  if ($('batchWeightKg')) {
+    $('batchWeightKg').value = Number.isFinite(number) && number > 0
+      ? number.toFixed(4).replace(/0+$/, '').replace(/\.$/, '')
+      : '';
+  }
 }
 
 function updateMixerProduction() {
   if ($('productionType').value !== 'Mixer') return;
-  const batchCount = Number($('batchCount').value);
-  const batchWeight = Number($('batchWeightKg').value);
+  const batchCount = Number($('batchCount')?.value || 0);
+  const batchWeight = Number($('batchWeightKg')?.value || 0);
   $('quantityKg').value = batchCount > 0 && batchWeight > 0
     ? round2(batchCount * batchWeight).toFixed(2)
     : '0.00';
@@ -183,7 +186,7 @@ function updateMixerProduction() {
 
 function updateBatchRequirements() {
   const isMixer = $('productionType').value === 'Mixer';
-  $('batchCount').required = isMixer && !state.legacyBatchMode;
+  if ($('batchCount')) $('batchCount').required = isMixer && !state.legacyBatchMode;
 }
 
 function productionRecipes() {
@@ -215,6 +218,7 @@ function recipeOptionText(recipe) {
 
 function renderRecipeOptions(selectedCode = '', legacyRecord = null) {
   const select = $('recipeSelect');
+  if (!select) return;
   const recipes = productionRecipes();
   select.innerHTML = '<option value="">Choose a production mix</option>';
   recipes.forEach((recipe) => {
@@ -248,7 +252,7 @@ function applySelectedRecipe(overwriteColor = true, recalculateProduction = true
       $('mixName').value = '';
       setBatchWeight(0);
       if (recalculateProduction) {
-        $('batchCount').value = '';
+        if ($('batchCount')) $('batchCount').value = '';
         $('quantityKg').value = '0.00';
       }
     }
@@ -367,7 +371,7 @@ function resetForm() {
   $('recordId').value = '';
   form.reset();
   $('date').value = state.filterDate || todayISO();
-  $('shift').value = 'Morning';
+  if ($('shift')) $('shift').value = 'Full Day';
   setProductionType('Mixer');
   renderRecipeOptions();
   applySelectedRecipe();
@@ -397,7 +401,7 @@ function editRecord(id) {
   $('recordId').value = id;
   setProductionType(record.type);
   $('date').value = record.date;
-  $('shift').value = record.shift;
+  if ($('shift')) $('shift').value = record.shift || 'Full Day';
   $('color').value = record.color || '';
   $('quantityKg').value = round2(record.quantityKg).toFixed(2);
   $('application').value = record.application || '';
@@ -412,7 +416,7 @@ function editRecord(id) {
       $('mixName').value = cleanMixNameText(record.mixName || '');
     }
     setBatchWeight(Number(record.batchWeightKg) > 0 ? record.batchWeightKg : recipeBatchWeight(recipe));
-    $('batchCount').value = Number(record.batchCount) > 0 ? formatBatchCount(record.batchCount) : '';
+    if ($('batchCount')) $('batchCount').value = Number(record.batchCount) > 0 ? formatBatchCount(record.batchCount) : '';
     if (!state.legacyBatchMode) updateMixerProduction();
     updateBatchRequirements();
     const legacyId = record.mixerId || `legacy-${record.id}`;
@@ -441,7 +445,7 @@ function duplicateRecord(id) {
   $('recordId').value = '';
   setProductionType(record.type);
   $('date').value = record.date;
-  $('shift').value = record.shift;
+  if ($('shift')) $('shift').value = record.shift || 'Full Day';
   $('color').value = record.color || '';
   $('quantityKg').value = round2(record.quantityKg).toFixed(2);
   $('application').value = record.application || '';
@@ -456,7 +460,7 @@ function duplicateRecord(id) {
       $('mixName').value = cleanMixNameText(record.mixName || '');
     }
     setBatchWeight(Number(record.batchWeightKg) > 0 ? record.batchWeightKg : recipeBatchWeight(recipe));
-    $('batchCount').value = Number(record.batchCount) > 0 ? formatBatchCount(record.batchCount) : '';
+    if ($('batchCount')) $('batchCount').value = Number(record.batchCount) > 0 ? formatBatchCount(record.batchCount) : '';
     if (!state.legacyBatchMode) updateMixerProduction();
     updateBatchRequirements();
     const equipmentId = record.mixerId || `legacy-${record.id}`;
@@ -528,26 +532,12 @@ function productionBreakdown(records) {
 
 function renderSummary(records) {
   const overall = productionBreakdown(records);
-  const morning = productionBreakdown(records.filter((record) => record.shift === 'Morning'));
-  const night = productionBreakdown(records.filter((record) => record.shift === 'Night' || record.shift === 'Evening'));
 
-  $('dayTotal').textContent = formatKg(overall.total);
-  $('mixerTotal').textContent = formatKg(overall.mixer);
-  $('pelletizerTotal').textContent = formatKg(overall.pelletizer);
-  $('recordCount').textContent = records.length.toLocaleString();
-  $('selectedDayLabel').textContent = state.showAll ? 'All dates' : formatDate(state.filterDate);
-
-  $('morningProduction').textContent = formatKg(morning.total);
-  $('morningMixer').textContent = formatKg(morning.mixer);
-  $('morningPelletizer').textContent = formatKg(morning.pelletizer);
-
-  $('nightProduction').textContent = formatKg(night.total);
-  $('nightMixer').textContent = formatKg(night.mixer);
-  $('nightPelletizer').textContent = formatKg(night.pelletizer);
-
-  $('shiftSummaryTotal').textContent = formatKg(overall.total);
-  $('shiftSummaryMixer').textContent = formatKg(overall.mixer);
-  $('shiftSummaryPelletizer').textContent = formatKg(overall.pelletizer);
+  if ($('dayTotal')) $('dayTotal').textContent = formatKg(overall.total);
+  if ($('mixerTotal')) $('mixerTotal').textContent = formatKg(overall.mixer);
+  if ($('pelletizerTotal')) $('pelletizerTotal').textContent = formatKg(overall.pelletizer);
+  if ($('recordCount')) $('recordCount').textContent = records.length.toLocaleString();
+  if ($('selectedDayLabel')) $('selectedDayLabel').textContent = state.showAll ? 'All dates' : formatDate(state.filterDate);
 }
 
 function recordEquipmentName(record) {
@@ -564,16 +554,8 @@ function recordMixDetail(record) {
   return record.application || '—';
 }
 
-function sortByShift(recordsList) {
-  return [...recordsList].sort((a, b) => {
-    if (a.shift === 'Morning' && b.shift !== 'Morning') return -1;
-    if (a.shift !== 'Morning' && b.shift === 'Morning') return 1;
-    return 0;
-  });
-}
-
 function renderRecords() {
-  const records = sortByShift(visibleRecords());
+  const records = visibleRecords();
   renderSummary(records);
   recordsBody.innerHTML = '';
   emptyState.classList.toggle('hidden', records.length !== 0);
@@ -582,8 +564,7 @@ function renderRecords() {
     const row = document.createElement('tr');
     row.innerHTML = `
       <td>${formatDate(record.date)}</td>
-      <td><span class="badge">${escapeHtml(record.shift)}</span></td>
-      <td>${escapeHtml(record.type)}</td>
+      <td><span class="badge">${escapeHtml(record.type)}</span></td>
       <td><strong>${escapeHtml(recordEquipmentName(record))}</strong></td>
       <td>${escapeHtml(recordMixDetail(record))}</td>
       <td>${escapeHtml(record.color)}</td>
@@ -636,8 +617,8 @@ form.addEventListener('submit', async (event) => {
     return;
   }
   const usesBatchCalculation = type === 'Mixer' && !state.legacyBatchMode;
-  const batchCount = usesBatchCalculation ? Number($('batchCount').value) : null;
-  const batchWeightKg = usesBatchCalculation ? Number($('batchWeightKg').value) : null;
+  const batchCount = usesBatchCalculation ? Number($('batchCount')?.value || 0) : null;
+  const batchWeightKg = usesBatchCalculation ? Number($('batchWeightKg')?.value || 0) : null;
   if (usesBatchCalculation && (!(batchCount > 0) || !(batchWeightKg > 0))) {
     setMessage('Enter a positive number of batches and choose a recipe with a valid batch weight.', 'error');
     return;
@@ -646,7 +627,7 @@ form.addEventListener('submit', async (event) => {
   const payload = {
     type,
     date: $('date').value,
-    shift: $('shift').value,
+    shift: $('shift') ? $('shift').value : 'Full Day',
     color: $('color').value.trim(),
     quantityKg: round2($('quantityKg').value),
     batchCount,
@@ -797,7 +778,7 @@ async function duplicatePreviousDayRecords() {
       const payload = {
         type: r.type,
         date: targetDate,
-        shift: r.shift,
+        shift: r.shift || 'Full Day',
         color: r.color || '',
         quantityKg: round2(r.quantityKg),
         batchCount: isMixer && Number(r.batchCount) > 0 ? Number(r.batchCount) : null,
@@ -887,8 +868,10 @@ $('themeSelect').addEventListener('change', (event) => {
 });
 
 ['application', 'color'].forEach((id) => {
-  $(id).addEventListener('click', (event) => showHistoryPicker(event.currentTarget));
-  $(id).addEventListener('focus', (event) => showHistoryPicker(event.currentTarget));
+  if ($(id)) {
+    $(id).addEventListener('click', (event) => showHistoryPicker(event.currentTarget));
+    $(id).addEventListener('focus', (event) => showHistoryPicker(event.currentTarget));
+  }
 });
 
 $('recipeSelect').addEventListener('change', () => {
@@ -897,11 +880,13 @@ $('recipeSelect').addEventListener('change', () => {
   applySelectedRecipe(true, true);
 });
 
-$('batchCount').addEventListener('input', () => {
-  state.legacyBatchMode = false;
-  updateBatchRequirements();
-  updateMixerProduction();
-});
+if ($('batchCount')) {
+  $('batchCount').addEventListener('input', () => {
+    state.legacyBatchMode = false;
+    updateBatchRequirements();
+    updateMixerProduction();
+  });
+}
 
 $('quantityKg').addEventListener('blur', normalizeQuantityInput);
 $('quantityKg').addEventListener('change', normalizeQuantityInput);
@@ -944,7 +929,7 @@ function pdfHeader(pdf, title, period) {
 
 function reportRows(records) {
   return records.map((r) => [
-    formatDate(r.date), r.shift, r.type, recordEquipmentName(r), recordMixDetail(r), r.color,
+    formatDate(r.date), r.type, recordEquipmentName(r), recordMixDetail(r), r.color,
     r.type === 'Mixer' && Number(r.batchCount) > 0 ? formatBatchCount(r.batchCount) : '-',
     round2(r.quantityKg).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   ]);
@@ -992,7 +977,6 @@ function drawDailyKpiCard(pdf, x, y, width, height, label, value, bgRgb, borderR
 }
 
 function drawDailyTable(pdf, title, startY, head, rows, colorColumn, padding = 1.5) {
-  // Full-width colored background banner for section headers with accent indicator dot
   const isMixer = title.startsWith('Mixer');
   const bannerBg = isMixer ? [239, 246, 255] : [245, 243, 255];
   const bannerBorder = isMixer ? [219, 234, 254] : [237, 233, 254];
@@ -1004,7 +988,6 @@ function drawDailyTable(pdf, title, startY, head, rows, colorColumn, padding = 1
   pdf.setLineWidth(0.3);
   pdf.roundedRect(14, startY, 182, 7.5, 1, 1, 'FD');
 
-  // Accent Dot
   pdf.setFillColor(...dotColor);
   pdf.circle(18, startY + 3.8, 1.3, 'F');
 
@@ -1026,20 +1009,18 @@ function drawDailyTable(pdf, title, startY, head, rows, colorColumn, padding = 1
 
   const columnStyles = isMixer
     ? {
-        0: { cellWidth: 20, halign: 'center' }, // Shift
-        1: { cellWidth: 26 }, // Mixer
-        2: { cellWidth: 18, halign: 'center' }, // Mix Code
-        3: { cellWidth: 54 }, // Mix Name
-        4: { cellWidth: 18, halign: 'center', fontStyle: 'bold' }, // Batches (centered & bold)
-        5: { cellWidth: 18 }, // Color
-        6: { cellWidth: 28, halign: 'center', fontStyle: 'bold' }  // Production (kg) (centered & bold)
+        0: { cellWidth: 32 }, // Mixer
+        1: { cellWidth: 22, halign: 'center' }, // Mix Code
+        2: { cellWidth: 58 }, // Mix Name
+        3: { cellWidth: 20, halign: 'center', fontStyle: 'bold' }, // Batches
+        4: { cellWidth: 20 }, // Color
+        5: { cellWidth: 30, halign: 'center', fontStyle: 'bold' }  // Production (kg)
       }
     : {
-        0: { cellWidth: 22, halign: 'center' }, // Shift
-        1: { cellWidth: 42 }, // Pelletizer
-        2: { cellWidth: 52 }, // Pellet Application
-        3: { cellWidth: 28 }, // Color
-        4: { cellWidth: 38, halign: 'center', fontStyle: 'bold' } // Production (kg) (centered & bold)
+        0: { cellWidth: 48 }, // Pelletizer
+        1: { cellWidth: 62 }, // Pellet Application
+        2: { cellWidth: 30 }, // Color
+        3: { cellWidth: 42, halign: 'center', fontStyle: 'bold' } // Production (kg)
       };
 
   pdf.autoTable({
@@ -1100,7 +1081,7 @@ function exportDailyPdf(date) {
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const totals = productionBreakdown(records);
 
-  // Outer Page Border frame with rounded corners
+  // Outer Page Border
   pdf.setDrawColor(37, 99, 235);
   pdf.setLineWidth(0.6);
   pdf.roundedRect(7, 6, 196, 283, 3, 3, 'S');
@@ -1124,7 +1105,7 @@ function exportDailyPdf(date) {
   pdf.setFontSize(8.0);
   pdf.text(`Production Date: ${productionDateLabel(date)}   |   Plant: Unit A`, 21, 34);
 
-  // Right Header Text (No Emojis)
+  // Right Header Text
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(11);
   pdf.text('COMPOUNDING', 190, 19, { align: 'right' });
@@ -1135,7 +1116,7 @@ function exportDailyPdf(date) {
   const nowStr = new Date().toLocaleDateString('en-GB') + ' ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   pdf.text(`Generated: ${nowStr}`, 190, 31, { align: 'right' });
 
-  // KPI 4-Card Grid (x: 14, 60.5, 107, 153.5 - width: 42.5mm each)
+  // KPI Grid
   const cardW = 42.5;
   const kpiY = 42;
   const kpiH = 16;
@@ -1145,11 +1126,10 @@ function exportDailyPdf(date) {
   drawDailyKpiCard(pdf, 107, kpiY, cardW, kpiH, 'Pelletizer Output', formatKg(totals.pelletizer), [245, 243, 255], [237, 233, 254], [124, 58, 237], [15, 23, 42]);
   drawDailyKpiCard(pdf, 153.5, kpiY, cardW, kpiH, 'Records Logged', String(records.length) + ' Records', [248, 250, 252], [226, 232, 240], [100, 116, 139], [15, 23, 42]);
 
-  const mixerRecords = sortByShift(records.filter((record) => record.type === 'Mixer'));
-  const pelletizerRecords = sortByShift(records.filter((record) => record.type === 'Pelletizer'));
+  const mixerRecords = records.filter((record) => record.type === 'Mixer');
+  const pelletizerRecords = records.filter((record) => record.type === 'Pelletizer');
 
   const mixerRows = mixerRecords.map((record) => [
-    record.shift,
     recordEquipmentName(record),
     record.mixCode || '',
     cleanMixNameText(record.mixName || ''),
@@ -1158,7 +1138,6 @@ function exportDailyPdf(date) {
     round2(record.quantityKg).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   ]);
   const pelletizerRows = pelletizerRecords.map((record) => [
-    record.shift,
     recordEquipmentName(record),
     record.application || '',
     record.color || '',
@@ -1183,29 +1162,26 @@ function exportDailyPdf(date) {
     pdf,
     'Mixer Production',
     64,
-    ['Shift', 'Mixer', 'Mix Code', 'Mix Name', 'Batches', 'Color', 'Production (kg)'],
+    ['Mixer', 'Mix Code', 'Mix Name', 'Batches', 'Color', 'Production (kg)'],
     mixerRows,
-    5,
+    4,
     dynamicPadding
   );
   y = drawDailyTable(
     pdf,
     'Pelletizer Production',
     y + interTableGap,
-    ['Shift', 'Pelletizer', 'Pellet Application', 'Color', 'Production (kg)'],
+    ['Pelletizer', 'Pellet Application', 'Color', 'Production (kg)'],
     pelletizerRows,
-    3,
+    2,
     dynamicPadding
   );
 
-  const morningTotal = records.filter((record) => record.shift === 'Morning').reduce((sum, record) => sum + Number(record.quantityKg || 0), 0);
-  const nightTotal = records.filter((record) => record.shift === 'Night' || record.shift === 'Evening').reduce((sum, record) => sum + Number(record.quantityKg || 0), 0);
-  
   const allDaysRecords = state.records || [];
   const distinctDays = new Set(allDaysRecords.map((r) => r.date)).size;
   const totalAllDaysKg = allDaysRecords.reduce((sum, r) => sum + Number(r.quantityKg || 0), 0);
 
-  // Shift Comparison Summary Bar
+  // Daily Summary Bar
   const summaryY = Math.min(256, Math.max(236, y + interTableGap));
   pdf.setFillColor(248, 250, 252);
   pdf.setDrawColor(226, 232, 240);
@@ -1216,16 +1192,17 @@ function exportDailyPdf(date) {
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(8.2);
   const summaryTextY = summaryY + 8;
-  pdf.text(`Morning Total: ${formatKg(morningTotal)}`, 18, summaryTextY);
-  pdf.text(`Night Total: ${formatKg(nightTotal)}`, 85, summaryTextY);
-  pdf.text(`All-Time Total (${distinctDays} Days): ${formatKg(totalAllDaysKg)}`, 192, summaryTextY, { align: 'right' });
+  pdf.text(`Day Total: ${formatKg(totals.total)}`, 18, summaryTextY);
+  pdf.text(`Mixer Total: ${formatKg(totals.mixer)}`, 80, summaryTextY);
+  pdf.text(`Pelletizer Total: ${formatKg(totals.pelletizer)}`, 135, summaryTextY);
+  pdf.text(`All-Time (${distinctDays} Days): ${formatKg(totalAllDaysKg)}`, 192, summaryTextY, { align: 'right' });
 
-  // Signatures Section (No Emojis)
+  // Signatures Section
   const sigY = summaryY + 18;
   pdf.setTextColor(100, 116, 139);
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(7.2);
-  pdf.text('Shift Supervisor:', 14, sigY);
+  pdf.text('Section Supervisor:', 14, sigY);
   pdf.setDrawColor(203, 213, 225);
   pdf.setLineWidth(0.3);
   pdf.line(14, sigY + 6, 60, sigY + 6);
@@ -1259,7 +1236,7 @@ function exportMonthlyPdf(month) {
     return [formatDate(date), formatKg(t.mixer), formatKg(t.pelletizer), formatKg(t.total)];
   });
   pdf.autoTable({ startY: 35, head: [['Date','Mixer','Pelletizer','Total']], body: dailyRows, theme:'grid', styles:{fontSize:8}, headStyles:{fillColor:[37,99,235]} });
-  pdf.autoTable({ startY: pdf.lastAutoTable.finalY + 7, head: [['Date','Shift','Type','Equipment','Mix / Application','Color','Batches','kg']], body: reportRows(records), theme:'grid', styles:{fontSize:6,cellPadding:1.25}, headStyles:{fillColor:[37,99,235],fontSize:6}, columnStyles:{6:{halign:'right'},7:{halign:'right'}} });
+  pdf.autoTable({ startY: pdf.lastAutoTable.finalY + 7, head: [['Date','Type','Equipment','Mix / Application','Color','Batches','kg']], body: reportRows(records), theme:'grid', styles:{fontSize:6,cellPadding:1.25}, headStyles:{fillColor:[37,99,235],fontSize:6}, columnStyles:{5:{halign:'right'},6:{halign:'right'}} });
   pdf.save(`monthly-production-${month}.pdf`);
 }
 
@@ -1293,9 +1270,8 @@ $('exportMonthlyPdf').addEventListener('click', () => {
 
 function exportExcelBackup() {
   if (typeof XLSX === 'undefined') throw new Error('Excel library could not be loaded.');
-  const sortedRecords = sortByShift(state.records);
-  const production = sortedRecords.map((r) => ({
-    'Record ID': r.id, 'Type': r.type, 'Date': r.date, 'Shift': r.shift,
+  const production = state.records.map((r) => ({
+    'Record ID': r.id, 'Type': r.type, 'Date': r.date,
     'Equipment ID': r.type === 'Mixer' ? r.mixerId : r.pelletizerId,
     'Equipment Name': recordEquipmentName(r), 'Mix Code': r.mixCode || '', 'Recipe Code': r.recipeCode || '',
     'Mix Name': cleanMixNameText(r.mixName || ''),
@@ -1312,7 +1288,7 @@ function exportExcelBackup() {
   const wb = XLSX.utils.book_new();
   const wsProduction = XLSX.utils.json_to_sheet(production);
   wsProduction['!cols'] = [
-    { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 16 },
+    { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 16 },
     { wch: 22 }, { wch: 14 }, { wch: 14 }, { wch: 32 }, { wch: 24 },
     { wch: 14 }, { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 22 }, { wch: 22 }
   ];
@@ -1344,7 +1320,7 @@ async function importProductionBackup(file) {
     if (!['Mixer','Pelletizer'].includes(type)) continue;
     const payload = {
       id: String(r['Record ID'] || ''), type, date: String(r.Date || '').slice(0,10),
-      shift: String(r.Shift || 'Morning') === 'Evening' ? 'Night' : String(r.Shift || 'Morning'),
+      shift: 'Full Day',
       mixerId: type === 'Mixer' ? String(r['Equipment ID'] || '') : '', mixerName: type === 'Mixer' ? String(r['Equipment Name'] || '') : '',
       pelletizerId: type === 'Pelletizer' ? String(r['Equipment ID'] || '') : '', pelletizerName: type === 'Pelletizer' ? String(r['Equipment Name'] || '') : '',
       mixCode: String(r['Mix Code'] || ''), recipeCode: String(r['Recipe Code'] || ''),
