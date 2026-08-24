@@ -1091,37 +1091,26 @@ function exportDailyPdf(date) {
 
   // Header Banner
   pdf.setFillColor(37, 99, 235);
-  pdf.rect(14, 10, 182, 28, 'F');
+  pdf.rect(14, 10, 182, 24, 'F');
   pdf.setFillColor(147, 197, 253);
-  pdf.rect(14, 10, 2.6, 28, 'F');
+  pdf.rect(14, 10, 2.6, 24, 'F');
   
   pdf.setTextColor(255, 255, 255);
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(8.0);
-  pdf.text('COMPOUNDING SECTION', 21, 17.5);
+  pdf.text('COMPOUNDING SECTION', 21, 16.5);
   pdf.setFontSize(16.5);
-  pdf.text('Daily Production Report', 21, 27);
+  pdf.text('Daily Production Report', 21, 25);
   pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(8.0);
-  pdf.text(`Production Date: ${productionDateLabel(date)}   |   Plant: Unit A`, 21, 34);
-
-  // Right Header Text
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(11);
-  pdf.text('COMPOUNDING', 190, 19, { align: 'right' });
-  pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(7.5);
-  pdf.setTextColor(219, 234, 254);
-  pdf.text('MANAGEMENT SYSTEM', 190, 24.5, { align: 'right' });
-  const nowStr = new Date().toLocaleDateString('en-GB') + ' ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-  pdf.text(`Generated: ${nowStr}`, 190, 31, { align: 'right' });
+  pdf.setFontSize(8.5);
+  pdf.text(`Production Date: ${productionDateLabel(date)}`, 21, 31);
 
   // KPI Grid
   const cardW = 42.5;
-  const kpiY = 42;
+  const kpiY = 38;
   const kpiH = 16;
   
-  drawDailyKpiCard(pdf, 14, kpiY, cardW, kpiH, 'Total Production', formatKg(totals.total), [15, 23, 42], [15, 23, 42], [148, 163, 184], [255, 255, 255]);
+  drawDailyKpiCard(pdf, 14, kpiY, cardW, kpiH, 'Total Production', formatKg(totals.total), [239, 246, 255], [219, 234, 254], [37, 99, 235], [15, 23, 42]);
   drawDailyKpiCard(pdf, 60.5, kpiY, cardW, kpiH, 'Mixer Output', formatKg(totals.mixer), [239, 246, 255], [219, 234, 254], [37, 99, 235], [15, 23, 42]);
   drawDailyKpiCard(pdf, 107, kpiY, cardW, kpiH, 'Pelletizer Output', formatKg(totals.pelletizer), [245, 243, 255], [237, 233, 254], [124, 58, 237], [15, 23, 42]);
   drawDailyKpiCard(pdf, 153.5, kpiY, cardW, kpiH, 'Records Logged', String(records.length) + ' Records', [248, 250, 252], [226, 232, 240], [100, 116, 139], [15, 23, 42]);
@@ -1145,60 +1134,60 @@ function exportDailyPdf(date) {
   ]);
 
   const totalRowCount = mixerRows.length + pelletizerRows.length;
-  let dynamicPadding = 1.6;
-  let interTableGap = 6;
+  let dynamicPadding = 2.5;
+  let interTableGap = 8;
   if (totalRowCount <= 4) {
-    dynamicPadding = 3.8;
+    dynamicPadding = 4.5;
     interTableGap = 10;
   } else if (totalRowCount <= 8) {
-    dynamicPadding = 3.0;
+    dynamicPadding = 3.5;
     interTableGap = 8;
-  } else if (totalRowCount <= 14) {
-    dynamicPadding = 2.2;
-    interTableGap = 6;
   }
 
-  let y = drawDailyTable(
-    pdf,
-    'Mixer Production',
-    64,
-    ['Mixer', 'Mix Code', 'Mix Name', 'Batches', 'Color', 'Production (kg)'],
-    mixerRows,
-    4,
-    dynamicPadding
-  );
-  y = drawDailyTable(
-    pdf,
-    'Pelletizer Production',
-    y + interTableGap,
-    ['Pelletizer', 'Pellet Application', 'Color', 'Production (kg)'],
-    pelletizerRows,
-    2,
-    dynamicPadding
-  );
+  let y = 58;
+  if (mixerRows.length > 0) {
+    y = drawDailyTable(
+      pdf,
+      'Mixer Production',
+      y,
+      ['Mixer', 'Mix Code', 'Mix Name', 'Batches', 'Color', 'Production (kg)'],
+      mixerRows,
+      4,
+      dynamicPadding
+    );
+  }
 
-  const allDaysRecords = state.records || [];
-  const distinctDays = new Set(allDaysRecords.map((r) => r.date)).size;
-  const totalAllDaysKg = allDaysRecords.reduce((sum, r) => sum + Number(r.quantityKg || 0), 0);
+  if (pelletizerRows.length > 0) {
+    y = drawDailyTable(
+      pdf,
+      'Pelletizer Production',
+      (mixerRows.length > 0 ? y + interTableGap : y),
+      ['Pelletizer', 'Pellet Application', 'Color', 'Production (kg)'],
+      pelletizerRows,
+      2,
+      dynamicPadding
+    );
+  }
 
   // Daily Summary Bar
-  const summaryY = Math.min(256, Math.max(236, y + interTableGap));
+  const summaryY = Math.min(256, Math.max(236, y + 10));
   pdf.setFillColor(248, 250, 252);
   pdf.setDrawColor(226, 232, 240);
   pdf.setLineWidth(0.3);
-  pdf.roundedRect(14, summaryY, 182, 13, 2, 2, 'FD');
+  pdf.roundedRect(14, summaryY, 182, 12, 2, 2, 'FD');
 
   pdf.setTextColor(30, 41, 59);
   pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(8.2);
-  const summaryTextY = summaryY + 8;
+  pdf.setFontSize(8.5);
+  const summaryTextY = summaryY + 7.5;
   pdf.text(`Day Total: ${formatKg(totals.total)}`, 18, summaryTextY);
   pdf.text(`Mixer Total: ${formatKg(totals.mixer)}`, 80, summaryTextY);
-  pdf.text(`Pelletizer Total: ${formatKg(totals.pelletizer)}`, 135, summaryTextY);
-  pdf.text(`All-Time (${distinctDays} Days): ${formatKg(totalAllDaysKg)}`, 192, summaryTextY, { align: 'right' });
+  if (totals.pelletizer > 0) {
+    pdf.text(`Pelletizer: ${formatKg(totals.pelletizer)}`, 140, summaryTextY);
+  }
 
   // Signatures Section
-  const sigY = summaryY + 18;
+  const sigY = summaryY + 16;
   pdf.setTextColor(100, 116, 139);
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(7.2);
