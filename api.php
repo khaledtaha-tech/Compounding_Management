@@ -119,8 +119,7 @@ try {
                 : null;
             if (!in_array($type, ['Mixer', 'Pelletizer'], true)) json_response(['error' => 'Choose Mixer or Pelletizer.'], 422);
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) json_response(['error' => 'A valid date is required.'], 422);
-            if ($shift === 'Evening') $shift = 'Night';
-            if (!in_array($shift, ['Morning', 'Night'], true)) json_response(['error' => 'Choose Morning or Night shift.'], 422);
+            if ($shift === '') $shift = 'Full Day';
             if ($color === '') json_response(['error' => 'Color is required.'], 422);
 
             $equipmentId = clean((string) ($type === 'Mixer' ? ($body['mixerId'] ?? '') : ($body['pelletizerId'] ?? '')), 80);
