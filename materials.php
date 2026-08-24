@@ -49,7 +49,7 @@ nav button.active{background:var(--primary);color:#fff}
 .toast{position:fixed;right:22px;bottom:22px;background:#1d2939;color:#fff;padding:12px 16px;border-radius:10px;box-shadow:var(--shadow);display:none;z-index:1000;font-size:12px}.toast.show{display:block}
 .page{display:none;padding:18px}
 .page.active{display:block}
-.grid{display:grid;grid-template-columns:minmax(650px,1fr) 380px;gap:16px}
+.grid{display:grid;grid-template-columns:minmax(520px,1fr) minmax(480px,1fr);gap:18px}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:18px}
 h2{margin:0 0 5px;font-size:18px} .sub{color:var(--muted);font-size:12px;margin-bottom:15px}
 table{width:100%;border-collapse:collapse;table-layout:fixed}
@@ -62,7 +62,7 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .primary{background:var(--primary);color:#fff}.soft{background:var(--primary2);color:var(--primary)}.danger{background:#fff0f0;color:var(--danger)}
 .full{width:100%}.row{display:flex;gap:9px;align-items:center}.space{justify-content:space-between}
-.recipe-select-card{border:1px solid var(--line);border-radius:13px;padding:14px;margin-bottom:10px;background:#fff;display:grid;grid-template-columns:28px 1fr 190px 135px;gap:12px;align-items:center}
+.recipe-select-card{border:1px solid var(--line);border-radius:13px;padding:14px;margin-bottom:10px;background:#fff;display:grid;grid-template-columns:28px 1fr 180px 130px;gap:12px;align-items:center}
 .recipe-select-card.selected{border-color:var(--primary);background:#f8fbff}
 .recipe-select-card h3{margin:0 0 4px;font-size:14px}.recipe-select-card p{margin:0;color:var(--muted);font-size:11px}
 .label{font-size:11px;font-weight:700;color:#526176;margin-bottom:5px}
@@ -124,7 +124,7 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
 .import-option.materials{background:#eaf8f2;color:var(--success)}
 .import-option.both{background:#fff4df;color:var(--warning)}
 .import-cancel{margin-top:10px;background:#eef3f8;color:#526176}
-@media(max-width:1250px){.grid{grid-template-columns:1fr 340px}.recipe-select-card{grid-template-columns:28px 1fr 170px 120px}.recipe-identity-grid{grid-template-columns:180px 150px 1fr}}
+@media(max-width:1250px){.grid{grid-template-columns:1fr}.recipe-select-card{grid-template-columns:28px 1fr 170px 120px}}
 @media(max-width:760px){.recipe-identity-grid,.formgrid{grid-template-columns:1fr}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -155,7 +155,16 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
     <div class="panel">
       <h2>Select Recipes for Calculation</h2>
       <div class="sub">Check the recipes to include, then enter the expected daily production for each selected recipe.</div>
+      
+      <div class="recipe-tools" style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap">
+        <input id="dashRecipeSearch" placeholder="Search recipes by code or name..." style="flex:1 1 200px">
+        <button type="button" id="toggleSelectedOnly" class="btn soft" style="font-size:12px;padding:0 10px">Show Selected Only</button>
+        <button type="button" id="selectAllDashRecipes" class="btn soft" style="font-size:12px;padding:0 10px">Select All</button>
+        <button type="button" id="clearAllDashRecipes" class="btn soft" style="font-size:12px;padding:0 10px">Clear All</button>
+      </div>
+
       <div id="recipeSelection"></div>
+      
       <div class="metric-grid">
         <div class="metric"><span>Selected Recipes</span><strong id="selectedCount">0</strong></div>
         <div class="metric"><span>Total Daily Production</span><strong id="totalDailyProduction">0 kg</strong></div>
@@ -306,7 +315,6 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
   </div>
 </section>
 
-
 <section id="materialsPage" class="page">
   <div class="panel">
     <div class="row space">
@@ -424,6 +432,7 @@ const LOCAL_CACHE_KEY="pvcPlannerCloudStableV1";
 try{state=JSON.parse(localStorage.getItem(LOCAL_CACHE_KEY))||structuredClone(defaults)}catch(e){state=structuredClone(defaults)}
 
 let isDirty=false;
+let showSelectedOnlyDash=false;
 
 function toast(message){
   const el=document.getElementById("toast");
@@ -534,7 +543,6 @@ function materialTotalStock(m){return (Number(m.stockWipKg)||0)+(Number(m.stockW
 function norm(s){return (s||"").trim().toLowerCase()}
 function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 
-
 function itemMaterial(item){
   return (item.material ?? item.name ?? "").trim();
 }
@@ -581,21 +589,17 @@ function inferRecipeColor(name){
   if(text.includes("grey")||text.includes("gray"))return "Grey";
   return "";
 }
-// دالة لتوليد كود الإنتاج المتسلسل
+
 function getNextProductionCode(category) {
-  // تحديد البادئة بناءً على القسم (Fitting أو غيره/Pipe)
   const prefix = (category && category.toLowerCase().includes('fitting')) ? 'MF' : 'MP';
-  
-  // جلب كل الأكواد المستخدمة حالياً للقسم ده
   const usedNumbers = state.recipes
     .map(r => r.productionCode)
     .filter(code => code && code.startsWith(prefix + '-'))
     .map(code => parseInt(code.split('-')[1] || '0', 10));
-  
-  // حساب أكبر رقم واستخراج اللي بعده
   const maxNumber = usedNumbers.length > 0 ? Math.max(...usedNumbers) : 0;
   return `${prefix}-${String(maxNumber + 1).padStart(2, '0')}`;
 }
+
 function migrateState(){
   state.recipes=(state.recipes||[]).map(r=>{
     const originalName=String(r.name||"").trim();
@@ -662,29 +666,53 @@ function migrateState(){
   state.rawMaterials=[...materialMap.values()];
 }
 migrateState();
+
 function renderDashboard(){
-  const box=document.getElementById("recipeSelection");box.innerHTML="";
-  state.recipes.forEach((r,i)=>{
-    const d=document.createElement("div");
-    d.className="recipe-select-card"+(r.selected?" selected":"");
-    d.innerHTML=`
-      <input class="check" type="checkbox" ${r.selected?"checked":""}>
-      <div><h3>${r.productionCode?`<span class="recipe-code-badge">${esc(r.productionCode)}</span>`:""}${r.code?`<span class="recipe-code-badge">${esc(r.code)}</span>`:""}${esc(r.name)}</h3><p>${r.ingredients.length} ingredients · Total batch ${fmt(total(r))} kg</p></div>
-      <div><div class="label">Daily Production (kg/day)</div><input type="number" min="0" step="1" value="${r.dailyProduction||0}"></div>
-      <div><div class="label">Material Consumption</div><button class="btn soft full">View Recipe</button></div>`;
-    d.querySelector(".check").addEventListener("change",e=>{r.selected=e.target.checked;save();renderDashboard()});
-    d.querySelector('input[type="number"]').addEventListener("input",e=>{r.dailyProduction=+e.target.value||0;save();updateSummary()});
-    d.querySelector("button").addEventListener("click",()=>{state.activeRecipe=i;save();showPage("recipes");renderRecipes()});
-    box.appendChild(d);
+  const box=document.getElementById("recipeSelection");
+  if(!box) return;
+  box.innerHTML="";
+  const search=(document.getElementById("dashRecipeSearch")?.value||"").trim().toLowerCase();
+
+  const filtered = state.recipes.map((r,i)=>({r,i})).filter(({r})=>{
+    if(showSelectedOnlyDash && !r.selected) return false;
+    const text = ((r.productionCode||"")+" "+(r.code||"")+" "+(r.name||"")+" "+(r.category||"")).toLowerCase();
+    return !search || text.includes(search);
   });
+
+  if(!filtered.length){
+    box.innerHTML='<div class="recipe-list-empty" style="margin-bottom:14px">No recipes match the search criteria.</div>';
+  } else {
+    filtered.forEach(({r,i})=>{
+      const d=document.createElement("div");
+      d.className="recipe-select-card"+(r.selected?" selected":"");
+      d.innerHTML=`
+        <input class="check" type="checkbox" ${r.selected?"checked":""}>
+        <div><h3>${r.productionCode?`<span class="recipe-code-badge">${esc(r.productionCode)}</span>`:""}${r.code?`<span class="recipe-code-badge">${esc(r.code)}</span>`:""}${esc(r.name)}</h3><p>${r.ingredients.length} ingredients · Total batch ${fmt(total(r))} kg</p></div>
+        <div><div class="label">Daily Production (kg/day)</div><input type="number" min="0" step="1" value="${r.dailyProduction||0}"></div>
+        <div><div class="label">Material Consumption</div><button class="btn soft full">View Recipe</button></div>`;
+      d.querySelector(".check").addEventListener("change",e=>{r.selected=e.target.checked;save();renderDashboard()});
+      d.querySelector('input[type="number"]').addEventListener("input",e=>{r.dailyProduction=+e.target.value||0;save();updateSummary()});
+      d.querySelector("button").addEventListener("click",()=>{state.activeRecipe=i;save();showPage("recipes");renderRecipes()});
+      box.appendChild(d);
+    });
+  }
+
+  const toggleBtn = document.getElementById("toggleSelectedOnly");
+  if(toggleBtn){
+    toggleBtn.textContent = showSelectedOnlyDash ? "Show All Recipes" : "Show Selected Only";
+    toggleBtn.className = showSelectedOnlyDash ? "btn primary" : "btn soft";
+  }
+
   renderStocks();renderMaterials();updateSummary();
 }
+
 function updateSummary(){
   const sel=state.recipes.filter(r=>r.selected);
   document.getElementById("selectedCount").textContent=sel.length;
   document.getElementById("totalDailyProduction").textContent=fmt(sel.reduce((s,r)=>s+(+r.dailyProduction||0),0),0)+" kg";
   document.getElementById("trackedCount").textContent=state.stocks.length;
 }
+
 function allMaterialItems(){
   const map=new Map();
   state.recipes.forEach(r=>(r.ingredients||[]).forEach(i=>{
@@ -782,7 +810,6 @@ function renderRawMaterials(){
     return !search||text.includes(search);
   });
    
-  // Apply sorting
   rows.sort(({m:m1},{m:m2})=>{
     if(sortBy==="name"){
       const a=(m1.material||"").toLowerCase();
@@ -862,6 +889,7 @@ function renderMaterialChecks(){
     box.appendChild(label);
   });
 }
+
 function renderRecipes(){
   if(!state.recipes.length){
     state.recipes.push({
@@ -940,7 +968,6 @@ function renderRecipes(){
     const currentMaterial=itemMaterial(ing);
     const currentGrade=itemGrade(ing);
 
-    // Keep old recipe values visible even if a raw-material record is later removed.
     const materialOptions=[...materialNames];
     if(currentMaterial&&!materialOptions.some(x=>norm(x)===norm(currentMaterial))) materialOptions.push(currentMaterial);
     materialOptions.sort((a,b)=>a.localeCompare(b));
@@ -1778,6 +1805,7 @@ function calculateOneMaterial(key){
     </div>
   </div>`;
 }
+
 function calculate(){
   const result=document.getElementById("resultBox");
   const materials=[...document.querySelectorAll('#materialChecks input:checked')].map(x=>x.value);
@@ -1785,6 +1813,7 @@ function calculate(){
   if(!state.recipes.some(r=>r.selected)){result.innerHTML='<div class="note">Select at least one recipe for calculation.</div>';return}
   result.innerHTML=materials.map(calculateOneMaterial).join("");
 }
+
 function showPage(which){
   document.getElementById("dashboardPage").classList.toggle("active",which==="dashboard");
   document.getElementById("recipesPage").classList.toggle("active",which==="recipes");
@@ -1793,6 +1822,7 @@ function showPage(which){
   document.getElementById("navRecipes").classList.toggle("active",which==="recipes");
   document.getElementById("navMaterials").classList.toggle("active",which==="materials");
 }
+
 document.getElementById("navDashboard").onclick=()=>{showPage("dashboard");renderDashboard()};
 document.getElementById("navRecipes").onclick=()=>{showPage("recipes");renderRecipes()};
 document.getElementById("navMaterials").onclick=()=>{showPage("materials");renderRawMaterials()};
@@ -1938,6 +1968,23 @@ document.getElementById("syncMaterials").onclick=syncRawMaterialsFromRecipes;
 document.getElementById("exportStockCountPdf").onclick=exportStockCountSheetPdf;
 document.getElementById("materialSearch").oninput=renderRawMaterials;
 document.getElementById("materialSortBy").onchange=renderRawMaterials;
+
+document.getElementById("dashRecipeSearch")?.addEventListener("input", renderDashboard);
+document.getElementById("toggleSelectedOnly")?.addEventListener("click", ()=>{
+  showSelectedOnlyDash = !showSelectedOnlyDash;
+  renderDashboard();
+});
+document.getElementById("selectAllDashRecipes")?.addEventListener("click", ()=>{
+  state.recipes.forEach(r => r.selected = true);
+  save();
+  renderDashboard();
+});
+document.getElementById("clearAllDashRecipes")?.addEventListener("click", ()=>{
+  state.recipes.forEach(r => r.selected = false);
+  save();
+  renderDashboard();
+});
+
 renderDashboard();renderRecipes();renderRawMaterials();isDirty=false;updateSaveStatus();
 loadCloudState().catch(error=>{console.error(error);setCloudStatus("Load Error","error");toast("Load failed: "+error.message)});
 </script>

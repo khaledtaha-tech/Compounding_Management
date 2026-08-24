@@ -8,12 +8,12 @@ const state = {
   editingId: null,
   legacyBatchMode: false
 };
-
+ 
 const $ = (id) => document.getElementById(id);
 const form = $('productionForm');
 const recordsBody = $('recordsBody');
 const emptyState = $('emptyState');
-
+ 
 async function apiFetch(url, options = {}) {
   const headers = new Headers(options.headers || {});
   const response = await fetch(url, { ...options, headers, credentials: 'same-origin' });
@@ -23,42 +23,42 @@ async function apiFetch(url, options = {}) {
   }
   return response;
 }
-
+ 
 function todayISO() {
   const now = new Date();
   const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
   return local.toISOString().slice(0, 10);
 }
-
+ 
 function yesterdayISO() {
   const now = new Date();
   now.setDate(now.getDate() - 1);
   const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
   return local.toISOString().slice(0, 10);
 }
-
+ 
 function currentMonthISO() {
   return todayISO().slice(0, 7);
 }
-
+ 
 function formatDate(dateString) {
   if (!dateString) return '';
   const [year, month, day] = dateString.split('-');
   return `${day}/${month}/${year}`;
 }
-
+ 
 function round2(value) {
   return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 }
-
+ 
 function round4(value) {
   return Math.round((Number(value) + Number.EPSILON) * 10000) / 10000;
 }
-
+ 
 function formatKg(value) {
   return `${round2(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg`;
 }
-
+ 
 function escapeHtml(value) {
   return String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -67,14 +67,14 @@ function escapeHtml(value) {
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
 }
-
+ 
 const THEMES = {
   arctic: { mode: 'light', color: '#2563eb' },
   indigo: { mode: 'light', color: '#4f46e5' },
   violet: { mode: 'light', color: '#8b5cf6' },
   graphite: { mode: 'dark', color: '#14131b' }
 };
-
+ 
 function setTheme(theme) {
   const selected = (THEMES[theme] && theme !== 'midnight') ? theme : 'arctic';
   document.documentElement.dataset.theme = selected;
@@ -83,18 +83,18 @@ function setTheme(theme) {
   const meta = $('themeColorMeta');
   if (meta) meta.setAttribute('content', THEMES[selected].color);
 }
-
+ 
 function initTheme() {
   let saved = localStorage.getItem('production-theme');
   if (saved === 'light' || saved === 'midnight' || saved === 'dark') saved = 'arctic';
   if (saved && THEMES[saved]) return setTheme(saved);
   setTheme('arctic');
 }
-
+ 
 function equipmentListForType(type) {
   return type === 'Mixer' ? state.equipment.mixers : state.equipment.pelletizers;
 }
-
+ 
 function historyValues(selector) {
   const seen = new Set();
   const values = [];
@@ -107,29 +107,29 @@ function historyValues(selector) {
   }
   return values;
 }
-
+ 
 function fillHistoryList(id, values) {
   if (!$(id)) return;
   $(id).innerHTML = values.map((value) => `<option value="${escapeHtml(value)}"></option>`).join('');
 }
-
+ 
 function renderHistorySuggestions() {
   const unique = (values) => [...new Map(values.filter(Boolean).map((value) => [String(value).trim().toLowerCase(), String(value).trim()])).values()];
   fillHistoryList('applicationHistory', historyValues((r) => r.type === 'Pelletizer' ? r.application : ''));
   fillHistoryList('colorHistory', unique([...historyValues((r) => r.color), ...state.recipes.map((r) => recipeColor(r))]));
 }
-
+ 
 function normalizedCode(value) {
   return String(value || '').trim().toUpperCase().replace(/\s+/g, '');
 }
-
+ 
 function productionCodeForRecipe(recipe) {
   const stored = normalizedCode(recipe?.productionCode);
   if (stored) return stored;
   const match = String(recipe?.name || '').match(/(?:^|[\s,;-])(MP|MF)\s*-\s*(\d+)(?=$|[\s,;.-])/i);
   return match ? `${match[1].toUpperCase()}-${String(Number(match[2])).padStart(2, '0')}` : '';
 }
-
+ 
 function cleanMixNameText(name) {
   return String(name || '')
     .replace(/([\s,;-])(MP|MF)\s*-\s*\d+(?=$|[\s,;.-])/ig, '')
@@ -140,11 +140,11 @@ function cleanMixNameText(name) {
     .replace(/\s{2,}/g, ' ')
     .trim();
 }
-
+ 
 function productionNameForRecipe(recipe) {
   return cleanMixNameText(recipe?.name || '');
 }
-
+ 
 function recipeColor(recipe) {
   const stored = String(recipe?.color || '').trim();
   if (stored) return stored;
@@ -155,17 +155,17 @@ function recipeColor(recipe) {
   if (name.includes('grey') || name.includes('gray')) return 'Grey';
   return '';
 }
-
+ 
 function recipeBatchWeight(recipe) {
   return round4((recipe?.ingredients || []).reduce((sum, ingredient) => sum + Number(ingredient?.kg || 0), 0));
 }
-
+ 
 function formatBatchCount(value) {
   const number = Number(value);
   if (!Number.isFinite(number) || number <= 0) return '';
   return number.toFixed(3).replace(/\.?0+$/, '');
 }
-
+ 
 function setBatchWeight(value) {
   const number = Number(value);
   if ($('batchWeightKg')) {
@@ -174,7 +174,7 @@ function setBatchWeight(value) {
       : '';
   }
 }
-
+ 
 function updateMixerProduction() {
   if ($('productionType').value !== 'Mixer') return;
   const batchCount = Number($('batchCount')?.value || 0);
@@ -183,21 +183,21 @@ function updateMixerProduction() {
     ? round2(batchCount * batchWeight).toFixed(2)
     : '0.00';
 }
-
+ 
 function updateBatchRequirements() {
   const isMixer = $('productionType').value === 'Mixer';
   if ($('batchCount')) $('batchCount').required = isMixer && !state.legacyBatchMode;
 }
-
+ 
 function productionRecipes() {
   return state.recipes.filter((recipe) => productionCodeForRecipe(recipe));
 }
-
+ 
 function selectedRecipe() {
   const code = normalizedCode($('recipeSelect').value);
   return state.recipes.find((recipe) => normalizedCode(recipe.code) === code) || null;
 }
-
+ 
 function recipeForRecord(record) {
   const recipeCode = normalizedCode(record.recipeCode);
   const productionCode = normalizedCode(record.mixCode);
@@ -206,7 +206,7 @@ function recipeForRecord(record) {
     || state.recipes.find((recipe) => productionCode && normalizedCode(recipe.code) === productionCode)
     || null;
 }
-
+ 
 function recipeOptionText(recipe) {
   const parts = [
     productionCodeForRecipe(recipe),
@@ -215,7 +215,7 @@ function recipeOptionText(recipe) {
   ].filter(Boolean);
   return parts.join(' — ');
 }
-
+ 
 function renderRecipeOptions(selectedCode = '', legacyRecord = null) {
   const select = $('recipeSelect');
   if (!select) return;
@@ -227,7 +227,7 @@ function renderRecipeOptions(selectedCode = '', legacyRecord = null) {
     option.textContent = recipeOptionText(recipe);
     select.appendChild(option);
   });
-
+ 
   const wanted = normalizedCode(selectedCode);
   if (wanted && [...select.options].some((option) => normalizedCode(option.value) === wanted)) {
     select.value = wanted;
@@ -242,7 +242,7 @@ function renderRecipeOptions(selectedCode = '', legacyRecord = null) {
     select.value = '';
   }
 }
-
+ 
 function applySelectedRecipe(overwriteColor = true, recalculateProduction = true) {
   const recipe = selectedRecipe();
   if (!recipe) {
@@ -267,7 +267,7 @@ function applySelectedRecipe(overwriteColor = true, recalculateProduction = true
   if (recalculateProduction) updateMixerProduction();
   updateBatchRequirements();
 }
-
+ 
 async function loadRecipeSuggestions() {
   try {
     const response = await apiFetch('api.php?action=material_state');
@@ -279,13 +279,13 @@ async function loadRecipeSuggestions() {
     console.warn('Recipe suggestions unavailable:', error);
   }
 }
-
+ 
 function showHistoryPicker(input) {
   try {
     if (typeof input.showPicker === 'function') input.showPicker();
   } catch (_) {}
 }
-
+ 
 function normalizeQuantityInput() {
   const input = $('quantityKg');
   if (!input.value) return;
@@ -293,25 +293,25 @@ function normalizeQuantityInput() {
   if (!Number.isFinite(value)) return;
   input.value = round2(value).toFixed(2);
 }
-
+ 
 function renderEquipmentOptions() {
   const currentMixer = $('mixerId').value;
   const currentPelletizer = $('pelletizerId').value;
-
+ 
   $('mixerId').innerHTML = state.equipment.mixers
     .map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`)
     .join('');
-
+ 
   $('pelletizerId').innerHTML = state.equipment.pelletizers
     .map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`)
     .join('');
-
+ 
   if (state.equipment.mixers.some((item) => item.id === currentMixer)) $('mixerId').value = currentMixer;
   if (state.equipment.pelletizers.some((item) => item.id === currentPelletizer)) $('pelletizerId').value = currentPelletizer;
-
+ 
   renderEquipmentLists();
 }
-
+ 
 function renderEquipmentLists() {
   const buildList = (items, type) => {
     if (!items.length) return '<p class="equipment-empty">No equipment added.</p>';
@@ -322,11 +322,11 @@ function renderEquipmentLists() {
       </div>
     `).join('');
   };
-
+ 
   $('mixerEquipmentList').innerHTML = buildList(state.equipment.mixers, 'Mixer');
   $('pelletizerEquipmentList').innerHTML = buildList(state.equipment.pelletizers, 'Pelletizer');
 }
-
+ 
 async function loadEquipment() {
   try {
     const response = await apiFetch('api.php?action=equipment');
@@ -340,13 +340,13 @@ async function loadEquipment() {
     setMessage('Unable to load equipment setup.', 'error');
   }
 }
-
+ 
 function setProductionType(type) {
   $('productionType').value = type;
   document.querySelectorAll('.segment').forEach((button) => {
     button.classList.toggle('active', button.dataset.type === type);
   });
-
+ 
   const isMixer = type === 'Mixer';
   $('mixerFields').classList.toggle('hidden', !isMixer);
   $('pelletizerFields').classList.toggle('hidden', isMixer);
@@ -358,13 +358,13 @@ function setProductionType(type) {
   $('quantityKg').classList.toggle('readonly-field', isMixer);
   updateBatchRequirements();
 }
-
+ 
 function setMessage(message = '', type = '') {
   const el = $('formMessage');
   el.textContent = message;
   el.className = `form-message ${type}`.trim();
 }
-
+ 
 function resetForm() {
   state.editingId = null;
   state.legacyBatchMode = false;
@@ -381,7 +381,7 @@ function resetForm() {
   setMessage('');
   renderEquipmentOptions();
 }
-
+ 
 function ensureSelectHasLegacyOption(select, id, name) {
   if (!id || !name) return;
   if ([...select.options].some((option) => option.value === id)) return;
@@ -390,11 +390,11 @@ function ensureSelectHasLegacyOption(select, id, name) {
   option.textContent = `${name} (historical)`;
   select.appendChild(option);
 }
-
+ 
 function editRecord(id) {
   const record = state.records.find((item) => item.id === id);
   if (!record) return;
-
+ 
   state.editingId = id;
   state.legacyBatchMode = record.type === 'Mixer'
     && !(Number(record.batchCount) > 0 && Number(record.batchWeightKg) > 0);
@@ -405,7 +405,7 @@ function editRecord(id) {
   $('color').value = record.color || '';
   $('quantityKg').value = round2(record.quantityKg).toFixed(2);
   $('application').value = record.application || '';
-
+ 
   if (record.type === 'Mixer') {
     const recipe = recipeForRecord(record);
     renderRecipeOptions(recipe?.code || '', recipe ? null : record);
@@ -427,18 +427,18 @@ function editRecord(id) {
     ensureSelectHasLegacyOption($('pelletizerId'), legacyId, record.pelletizerName || 'Pelletizer');
     $('pelletizerId').value = legacyId;
   }
-
+ 
   $('formTitle').textContent = 'Edit Production Record';
   $('saveButton').textContent = 'Update Record';
   $('cancelEdit').classList.remove('hidden');
   setMessage('Editing selected record.');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
-
+ 
 function duplicateRecord(id) {
   const record = state.records.find((item) => item.id === id);
   if (!record) return;
-
+ 
   state.editingId = null;
   state.legacyBatchMode = record.type === 'Mixer'
     && !(Number(record.batchCount) > 0 && Number(record.batchWeightKg) > 0);
@@ -449,7 +449,7 @@ function duplicateRecord(id) {
   $('color').value = record.color || '';
   $('quantityKg').value = round2(record.quantityKg).toFixed(2);
   $('application').value = record.application || '';
-
+ 
   if (record.type === 'Mixer') {
     const recipe = recipeForRecord(record);
     renderRecipeOptions(recipe?.code || '', recipe ? null : record);
@@ -471,19 +471,19 @@ function duplicateRecord(id) {
     ensureSelectHasLegacyOption($('pelletizerId'), equipmentId, record.pelletizerName || 'Pelletizer');
     $('pelletizerId').value = equipmentId;
   }
-
+ 
   $('formTitle').textContent = 'Duplicate Production Record';
   $('saveButton').textContent = 'Save Duplicate';
   $('cancelEdit').classList.remove('hidden');
   setMessage('Duplicate loaded. Review the values, then save it as a new record.');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
-
+ 
 async function deleteRecord(id) {
   const record = state.records.find((item) => item.id === id);
   if (!record) return;
   if (!confirm(`Delete this ${record.type.toLowerCase()} production record?`)) return;
-
+ 
   const response = await apiFetch(`api.php?action=records&id=${encodeURIComponent(id)}`, { method: 'DELETE' });
   if (!response.ok) {
     alert('Could not delete the record.');
@@ -492,15 +492,15 @@ async function deleteRecord(id) {
   if (state.editingId === id) resetForm();
   await loadRecords();
 }
-
+ 
 function visibleRecords() {
   let records = (state.showAll || !state.filterDate)
     ? state.records
     : state.records.filter((record) => record.date === state.filterDate);
-
+ 
   const query = state.searchQuery.trim().toLowerCase();
   if (!query) return records;
-
+ 
   return records.filter((record) => {
     const searchableText = [
       record.mixerName,
@@ -514,11 +514,11 @@ function visibleRecords() {
       .filter(Boolean)
       .join(' ')
       .toLowerCase();
-
+ 
     return searchableText.includes(query);
   });
 }
-
+ 
 function productionBreakdown(records) {
   const mixer = records
     .filter((record) => record.type === 'Mixer')
@@ -526,26 +526,26 @@ function productionBreakdown(records) {
   const pelletizer = records
     .filter((record) => record.type === 'Pelletizer')
     .reduce((sum, record) => sum + Number(record.quantityKg || 0), 0);
-
+ 
   return { mixer, pelletizer, total: mixer + pelletizer };
 }
-
+ 
 function renderSummary(records) {
   const overall = productionBreakdown(records);
-
+ 
   if ($('dayTotal')) $('dayTotal').textContent = formatKg(overall.total);
   if ($('mixerTotal')) $('mixerTotal').textContent = formatKg(overall.mixer);
   if ($('pelletizerTotal')) $('pelletizerTotal').textContent = formatKg(overall.pelletizer);
   if ($('recordCount')) $('recordCount').textContent = records.length.toLocaleString();
   if ($('selectedDayLabel')) $('selectedDayLabel').textContent = state.showAll ? 'All dates' : formatDate(state.filterDate);
 }
-
+ 
 function recordEquipmentName(record) {
   return record.type === 'Mixer'
     ? (record.mixerName || 'Mixer')
     : (record.pelletizerName || 'Pelletizer');
 }
-
+ 
 function recordMixDetail(record) {
   if (record.type === 'Mixer') {
     const parts = [record.mixCode, cleanMixNameText(record.mixName)].filter(Boolean);
@@ -553,13 +553,13 @@ function recordMixDetail(record) {
   }
   return record.application || '—';
 }
-
+ 
 function renderRecords() {
   const records = visibleRecords();
   renderSummary(records);
   recordsBody.innerHTML = '';
   emptyState.classList.toggle('hidden', records.length !== 0);
-
+ 
   for (const record of records) {
     const row = document.createElement('tr');
     row.innerHTML = `
@@ -581,7 +581,7 @@ function renderRecords() {
     recordsBody.appendChild(row);
   }
 }
-
+ 
 async function loadRecords() {
   try {
     const response = await apiFetch('api.php?action=records');
@@ -597,17 +597,17 @@ async function loadRecords() {
     emptyState.querySelector('p').textContent = 'Check the server connection and try again.';
   }
 }
-
+ 
 function selectedEquipment(type) {
   const select = type === 'Mixer' ? $('mixerId') : $('pelletizerId');
   const option = select.options[select.selectedIndex];
   return { id: select.value, name: option?.textContent?.replace(' (historical)', '') || '' };
 }
-
+ 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
   setMessage('Saving...');
-
+ 
   const type = $('productionType').value;
   const equipment = selectedEquipment(type);
   const recipe = type === 'Mixer' ? selectedRecipe() : null;
@@ -641,11 +641,11 @@ form.addEventListener('submit', async (event) => {
     mixName: type === 'Mixer' ? (recipe ? productionNameForRecipe(recipe) : cleanMixNameText($('mixName').value)) : '',
     application: type === 'Pelletizer' ? $('application').value.trim() : ''
   };
-
+ 
   const isEditing = Boolean(state.editingId);
   const url = isEditing ? `api.php?action=records&id=${encodeURIComponent(state.editingId)}` : 'api.php?action=records';
   const method = isEditing ? 'PUT' : 'POST';
-
+ 
   try {
     const response = await apiFetch(url, {
       method,
@@ -654,7 +654,7 @@ form.addEventListener('submit', async (event) => {
     });
     const data = response.status === 204 ? null : await response.json();
     if (!response.ok) throw new Error(data?.error || 'Could not save record.');
-
+ 
     state.filterDate = payload.date;
     state.showAll = false;
     $('filterDate').value = payload.date;
@@ -665,19 +665,19 @@ form.addEventListener('submit', async (event) => {
     setMessage(error.message, 'error');
   }
 });
-
+ 
 function openModal(id) {
   $(id).classList.remove('hidden');
   document.body.classList.add('modal-open');
 }
-
+ 
 function closeModal(id) {
   $(id).classList.add('hidden');
   if (document.querySelectorAll('.modal-backdrop:not(.hidden)').length === 0) {
     document.body.classList.remove('modal-open');
   }
 }
-
+ 
 function openAddEquipment(type) {
   $('equipmentType').value = type;
   $('addEquipmentTitle').textContent = `Add ${type}`;
@@ -688,12 +688,12 @@ function openAddEquipment(type) {
   openModal('addEquipmentModal');
   setTimeout(() => $('equipmentName').focus(), 0);
 }
-
+ 
 async function removeEquipment(type, id) {
   const item = equipmentListForType(type).find((entry) => entry.id === id);
   if (!item) return;
   if (!confirm(`Remove "${item.name}" from the equipment list? Historical production records will remain unchanged.`)) return;
-
+ 
   try {
     const response = await apiFetch(`api.php?action=equipment&id=${encodeURIComponent(id)}`, { method: 'DELETE' });
     const data = response.status === 204 ? null : await response.json();
@@ -703,7 +703,7 @@ async function removeEquipment(type, id) {
     alert(error.message);
   }
 }
-
+ 
 $('equipmentForm').addEventListener('submit', async (event) => {
   event.preventDefault();
   const type = $('equipmentType').value;
@@ -711,7 +711,7 @@ $('equipmentForm').addEventListener('submit', async (event) => {
   const message = $('equipmentMessage');
   message.textContent = 'Saving...';
   message.className = 'form-message';
-
+ 
   try {
     const response = await apiFetch('api.php?action=equipment', {
       method: 'POST',
@@ -720,7 +720,7 @@ $('equipmentForm').addEventListener('submit', async (event) => {
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data?.error || 'Could not save equipment.');
-
+ 
     await loadEquipment();
     const targetSelect = type === 'Mixer' ? $('mixerId') : $('pelletizerId');
     targetSelect.value = data.id;
@@ -732,14 +732,14 @@ $('equipmentForm').addEventListener('submit', async (event) => {
     message.className = 'form-message error';
   }
 });
-
+ 
 function getPreviousDateString(dateStr) {
   const [y, m, d] = dateStr.split('-').map(Number);
   const date = new Date(Date.UTC(y, m - 1, d));
   date.setUTCDate(date.getUTCDate() - 1);
   return date.toISOString().slice(0, 10);
 }
-
+ 
 async function duplicatePreviousDayRecords() {
   const targetDate = $('filterDate').value || todayISO();
   const defaultPrevDate = getPreviousDateString(targetDate);
@@ -747,31 +747,31 @@ async function duplicatePreviousDayRecords() {
     .filter(d => d < targetDate)
     .sort()
     .reverse();
-
+ 
   const sourceDate = olderDates.includes(defaultPrevDate) 
     ? defaultPrevDate 
     : (olderDates[0] || defaultPrevDate);
-
+ 
   const prevRecords = state.records.filter(r => r.date === sourceDate);
-
+ 
   if (!prevRecords.length) {
     alert(`No production records found for previous date (${formatDate(sourceDate)}).`);
     return;
   }
-
+ 
   const targetExisting = state.records.filter(r => r.date === targetDate);
   let confirmMsg = `Duplicate ${prevRecords.length} record(s) from ${formatDate(sourceDate)} to ${formatDate(targetDate)}?`;
   if (targetExisting.length > 0) {
     confirmMsg += `\n\nNote: ${targetDate} already has ${targetExisting.length} record(s). New duplicates will be added.`;
   }
-
+ 
   if (!confirm(confirmMsg)) return;
-
+ 
   const btn = $('duplicatePreviousDay');
   const originalText = btn.textContent;
   btn.disabled = true;
   btn.textContent = 'Duplicating...';
-
+ 
   try {
     for (const r of prevRecords) {
       const isMixer = r.type === 'Mixer';
@@ -792,19 +792,19 @@ async function duplicatePreviousDayRecords() {
         mixName: isMixer ? cleanMixNameText(r.mixName || '') : '',
         application: !isMixer ? (r.application || '') : ''
       };
-
+ 
       const res = await apiFetch('api.php?action=records', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-
+ 
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || 'Failed to save duplicate record.');
       }
     }
-
+ 
     state.filterDate = targetDate;
     state.showAll = false;
     $('filterDate').value = targetDate;
@@ -818,15 +818,15 @@ async function duplicatePreviousDayRecords() {
     btn.textContent = originalText;
   }
 }
-
+ 
 document.querySelectorAll('.segment').forEach((button) => {
   button.addEventListener('click', () => setProductionType(button.dataset.type));
 });
-
+ 
 document.querySelectorAll('[data-add-equipment]').forEach((button) => {
   button.addEventListener('click', () => openAddEquipment(button.dataset.addEquipment));
 });
-
+ 
 recordsBody.addEventListener('click', (event) => {
   const duplicateId = event.target.dataset.duplicate;
   const editId = event.target.dataset.edit;
@@ -835,17 +835,17 @@ recordsBody.addEventListener('click', (event) => {
   if (editId) editRecord(editId);
   if (deleteId) deleteRecord(deleteId);
 });
-
+ 
 $('mixerEquipmentList').addEventListener('click', (event) => {
   const id = event.target.dataset.removeEquipment;
   if (id) removeEquipment(event.target.dataset.equipmentType, id);
 });
-
+ 
 $('pelletizerEquipmentList').addEventListener('click', (event) => {
   const id = event.target.dataset.removeEquipment;
   if (id) removeEquipment(event.target.dataset.equipmentType, id);
 });
-
+ 
 $('cancelEdit').addEventListener('click', resetForm);
 $('recordsSearch').addEventListener('input', (event) => {
   state.searchQuery = event.target.value;
@@ -866,20 +866,20 @@ if ($('duplicatePreviousDay')) {
 $('themeSelect').addEventListener('change', (event) => {
   setTheme(event.target.value);
 });
-
+ 
 ['application', 'color'].forEach((id) => {
   if ($(id)) {
     $(id).addEventListener('click', (event) => showHistoryPicker(event.currentTarget));
     $(id).addEventListener('focus', (event) => showHistoryPicker(event.currentTarget));
   }
 });
-
+ 
 $('recipeSelect').addEventListener('change', () => {
   state.legacyBatchMode = false;
   updateBatchRequirements();
   applySelectedRecipe(true, true);
 });
-
+ 
 if ($('batchCount')) {
   $('batchCount').addEventListener('input', () => {
     state.legacyBatchMode = false;
@@ -887,33 +887,33 @@ if ($('batchCount')) {
     updateMixerProduction();
   });
 }
-
+ 
 $('quantityKg').addEventListener('blur', normalizeQuantityInput);
 $('quantityKg').addEventListener('change', normalizeQuantityInput);
-
+ 
 $('manageEquipment').addEventListener('click', () => openModal('equipmentModal'));
 $('closeEquipmentModal').addEventListener('click', () => closeModal('equipmentModal'));
 $('closeAddEquipmentModal').addEventListener('click', () => closeModal('addEquipmentModal'));
 $('cancelAddEquipment').addEventListener('click', () => closeModal('addEquipmentModal'));
-
+ 
 ['equipmentModal', 'addEquipmentModal'].forEach((id) => {
   $(id).addEventListener('click', (event) => {
     if (event.target === $(id)) closeModal(id);
   });
 });
-
+ 
 document.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape') return;
   if (!$('addEquipmentModal').classList.contains('hidden')) closeModal('addEquipmentModal');
   else if (!$('equipmentModal').classList.contains('hidden')) closeModal('equipmentModal');
 });
-
+ 
 function setReportMessage(message = '', type = '') {
   const el = $('reportMessage');
   el.textContent = message;
   el.className = `report-message ${type}`.trim();
 }
-
+ 
 function pdfHeader(pdf, title, period) {
   pdf.setFillColor(37, 99, 235);
   pdf.rect(0, 0, pdf.internal.pageSize.getWidth(), 22, 'F');
@@ -926,7 +926,7 @@ function pdfHeader(pdf, title, period) {
   pdf.text(period, pdf.internal.pageSize.getWidth() - 14, 17, { align: 'right' });
   pdf.setTextColor(20, 35, 60);
 }
-
+ 
 function reportRows(records) {
   return records.map((r) => [
     formatDate(r.date), r.type, recordEquipmentName(r), recordMixDetail(r), r.color,
@@ -934,14 +934,14 @@ function reportRows(records) {
     round2(r.quantityKg).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   ]);
 }
-
+ 
 function productionDateLabel(date) {
   const [year, month, day] = String(date).split('-').map(Number);
   const value = new Date(Date.UTC(year, month - 1, day));
   const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][value.getUTCDay()];
   return `${dayName}, ${formatDate(date)}`;
 }
-
+ 
 function reportColorRgb(color) {
   const value = String(color || '').trim().toLowerCase();
   const colors = [
@@ -958,7 +958,7 @@ function reportColorRgb(color) {
   ];
   return colors.find(([names]) => names.some((name) => value.includes(name)))?.[1] || [203, 213, 225];
 }
-
+ 
 function drawDailyKpiCard(pdf, x, y, width, height, label, value, bgRgb, borderRgb, labelRgb, valueRgb) {
   pdf.setFillColor(...bgRgb);
   pdf.setDrawColor(...borderRgb);
@@ -975,27 +975,27 @@ function drawDailyKpiCard(pdf, x, y, width, height, label, value, bgRgb, borderR
   pdf.setFontSize(11);
   pdf.text(value, x + 3.5, y + 12.5);
 }
-
+ 
 function drawDailyTable(pdf, title, startY, head, rows, colorColumn, padding = 1.5) {
   const isMixer = title.startsWith('Mixer');
   const bannerBg = isMixer ? [239, 246, 255] : [245, 243, 255];
   const bannerBorder = isMixer ? [219, 234, 254] : [237, 233, 254];
   const dotColor = isMixer ? [37, 99, 235] : [124, 58, 237];
   const titleColor = isMixer ? [30, 64, 175] : [91, 33, 182];
-
+ 
   pdf.setFillColor(...bannerBg);
   pdf.setDrawColor(...bannerBorder);
   pdf.setLineWidth(0.3);
   pdf.roundedRect(14, startY, 182, 7.5, 1, 1, 'FD');
-
+ 
   pdf.setFillColor(...dotColor);
   pdf.circle(18, startY + 3.8, 1.3, 'F');
-
+ 
   pdf.setTextColor(...titleColor);
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(8.8);
   pdf.text(title.toUpperCase(), 22, startY + 5.1);
-
+ 
   if (!rows.length) {
     pdf.setFillColor(248, 250, 252);
     pdf.setDrawColor(226, 232, 240);
@@ -1006,23 +1006,23 @@ function drawDailyTable(pdf, title, startY, head, rows, colorColumn, padding = 1
     pdf.text(`No ${title.toLowerCase()} records.`, 17, startY + 14);
     return startY + 18;
   }
-
+ 
   const columnStyles = isMixer
     ? {
-        0: { cellWidth: 32 }, // Mixer
-        1: { cellWidth: 22, halign: 'center' }, // Mix Code
-        2: { cellWidth: 58 }, // Mix Name
-        3: { cellWidth: 20, halign: 'center', fontStyle: 'bold' }, // Batches
-        4: { cellWidth: 20 }, // Color
-        5: { cellWidth: 30, halign: 'center', fontStyle: 'bold' }  // Production (kg)
+        0: { cellWidth: 32 },
+        1: { cellWidth: 22, halign: 'center' },
+        2: { cellWidth: 58 },
+        3: { cellWidth: 20, halign: 'center', fontStyle: 'bold' },
+        4: { cellWidth: 20 },
+        5: { cellWidth: 30, halign: 'center', fontStyle: 'bold' }
       }
     : {
-        0: { cellWidth: 48 }, // Pelletizer
-        1: { cellWidth: 62 }, // Pellet Application
-        2: { cellWidth: 30 }, // Color
-        3: { cellWidth: 42, halign: 'center', fontStyle: 'bold' } // Production (kg)
+        0: { cellWidth: 48 },
+        1: { cellWidth: 62 },
+        2: { cellWidth: 30 },
+        3: { cellWidth: 42, halign: 'center', fontStyle: 'bold' }
       };
-
+ 
   pdf.autoTable({
     startY: startY + 9,
     head: [head],
@@ -1070,10 +1070,10 @@ function drawDailyTable(pdf, title, startY, head, rows, colorColumn, padding = 1
       pdf.rect(data.cell.x + 1.8, y, size, size, 'FD');
     }
   });
-
+ 
   return pdf.lastAutoTable.finalY;
 }
-
+ 
 function exportDailyPdf(date) {
   const records = state.records.filter((r) => r.date === date);
   if (!records.length) throw new Error('No production records exist for the selected date.');
@@ -1081,7 +1081,6 @@ function exportDailyPdf(date) {
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const totals = productionBreakdown(records);
 
-  // Outer Page Border
   pdf.setDrawColor(37, 99, 235);
   pdf.setLineWidth(0.6);
   pdf.roundedRect(7, 6, 196, 283, 3, 3, 'S');
@@ -1089,7 +1088,6 @@ function exportDailyPdf(date) {
   pdf.setLineWidth(0.2);
   pdf.roundedRect(8, 7, 194, 281, 2, 2, 'S');
 
-  // Header Banner
   pdf.setFillColor(37, 99, 235);
   pdf.rect(14, 10, 182, 24, 'F');
   pdf.setFillColor(147, 197, 253);
@@ -1105,7 +1103,6 @@ function exportDailyPdf(date) {
   pdf.setFontSize(8.5);
   pdf.text(`Production Date: ${productionDateLabel(date)}`, 21, 31);
 
-  // KPI Grid
   const cardW = 42.5;
   const kpiY = 38;
   const kpiH = 16;
@@ -1169,7 +1166,6 @@ function exportDailyPdf(date) {
     );
   }
 
-  // Daily Summary Bar
   const summaryY = Math.min(256, Math.max(236, y + 10));
   pdf.setFillColor(248, 250, 252);
   pdf.setDrawColor(226, 232, 240);
@@ -1186,7 +1182,6 @@ function exportDailyPdf(date) {
     pdf.text(`Pelletizer: ${formatKg(totals.pelletizer)}`, 140, summaryTextY);
   }
 
-  // Signatures Section
   const sigY = summaryY + 16;
   pdf.setTextColor(100, 116, 139);
   pdf.setFont('helvetica', 'bold');
@@ -1205,7 +1200,7 @@ function exportDailyPdf(date) {
   pdf.text('Page 1 of 1', 190, 284, { align: 'right' });
   pdf.save(`daily-production-${date}.pdf`);
 }
-
+ 
 function exportMonthlyPdf(month) {
   const records = state.records.filter((r) => String(r.date).startsWith(month));
   if (!records.length) throw new Error('No production records exist for the selected month.');
@@ -1228,7 +1223,7 @@ function exportMonthlyPdf(month) {
   pdf.autoTable({ startY: pdf.lastAutoTable.finalY + 7, head: [['Date','Type','Equipment','Mix / Application','Color','Batches','kg']], body: reportRows(records), theme:'grid', styles:{fontSize:6,cellPadding:1.25}, headStyles:{fillColor:[37,99,235],fontSize:6}, columnStyles:{5:{halign:'right'},6:{halign:'right'}} });
   pdf.save(`monthly-production-${month}.pdf`);
 }
-
+ 
 async function runReport(exporter, button) {
   const originalText = button.textContent;
   button.disabled = true;
@@ -1244,19 +1239,19 @@ async function runReport(exporter, button) {
     button.textContent = originalText;
   }
 }
-
+ 
 $('exportDailyPdf').addEventListener('click', () => {
   const date = $('dailyReportDate').value;
   if (!date) return setReportMessage('Please select a report date.', 'error');
   runReport(() => exportDailyPdf(date), $('exportDailyPdf'));
 });
-
+ 
 $('exportMonthlyPdf').addEventListener('click', () => {
   const month = $('monthlyReportMonth').value;
   if (!month) return setReportMessage('Please select a report month.', 'error');
   runReport(() => exportMonthlyPdf(month), $('exportMonthlyPdf'));
 });
-
+ 
 function exportExcelBackup() {
   if (typeof XLSX === 'undefined') throw new Error('Excel library could not be loaded.');
   const production = state.records.map((r) => ({
@@ -1283,12 +1278,12 @@ function exportExcelBackup() {
   ];
   const wsEquipment = XLSX.utils.json_to_sheet(equipment);
   wsEquipment['!cols'] = [{ wch: 14 }, { wch: 20 }, { wch: 24 }];
-
+ 
   XLSX.utils.book_append_sheet(wb, wsProduction, 'Production');
   XLSX.utils.book_append_sheet(wb, wsEquipment, 'Equipment');
   XLSX.writeFile(wb, `Mixer_Production_Backup_${todayISO()}.xlsx`);
 }
-
+ 
 async function importProductionBackup(file) {
   if (typeof XLSX === 'undefined') throw new Error('Excel library could not be loaded.');
   const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
@@ -1331,7 +1326,7 @@ async function importProductionBackup(file) {
   await loadRecords();
   setReportMessage(`Backup imported successfully: ${records.length} production records.`, 'success');
 }
-
+ 
 $('exportExcelBackup').addEventListener('click', () => { try { exportExcelBackup(); } catch (e) { setReportMessage(e.message, 'error'); } });
 $('importExcelBackup').addEventListener('click', () => $('productionBackupFile').click());
 $('productionBackupFile').addEventListener('change', async (event) => {
@@ -1341,7 +1336,7 @@ $('productionBackupFile').addEventListener('change', async (event) => {
   catch (e) { setReportMessage(e.message, 'error'); }
   finally { event.target.value=''; }
 });
-
+ 
 async function initialize() {
   state.filterDate = todayISO();
   $('filterDate').value = state.filterDate;
@@ -1352,6 +1347,6 @@ async function initialize() {
   resetForm();
   await loadRecords();
 }
-
+ 
 initTheme();
 initialize().catch((error) => console.error('Application initialization failed:', error));
