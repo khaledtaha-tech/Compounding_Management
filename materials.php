@@ -49,7 +49,7 @@ nav button.active{background:var(--primary);color:#fff}
 .toast{position:fixed;right:22px;bottom:22px;background:#1d2939;color:#fff;padding:12px 16px;border-radius:10px;box-shadow:var(--shadow);display:none;z-index:1000;font-size:12px}.toast.show{display:block}
 .page{display:none;padding:18px}
 .page.active{display:block}
-.grid{display:grid;grid-template-columns:minmax(520px,1fr) minmax(480px,1fr);gap:18px}
+.grid{display:grid;grid-template-columns:1.2fr 0.8fr;gap:18px;align-items:start}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:18px}
 h2{margin:0 0 5px;font-size:18px} .sub{color:var(--muted);font-size:12px;margin-bottom:15px}
 table{width:100%;border-collapse:collapse;table-layout:fixed}
@@ -62,15 +62,15 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .primary{background:var(--primary);color:#fff}.soft{background:var(--primary2);color:var(--primary)}.danger{background:#fff0f0;color:var(--danger)}
 .full{width:100%}.row{display:flex;gap:9px;align-items:center}.space{justify-content:space-between}
-.recipe-select-card{border:1px solid var(--line);border-radius:13px;padding:14px;margin-bottom:10px;background:#fff;display:grid;grid-template-columns:28px 1fr 180px 130px;gap:12px;align-items:center}
+.recipe-select-card{border:1px solid var(--line);border-radius:13px;padding:12px;margin-bottom:10px;background:#fff;display:grid;grid-template-columns:26px 1fr 125px 125px 95px;gap:10px;align-items:center}
 .recipe-select-card.selected{border-color:var(--primary);background:#f8fbff}
-.recipe-select-card h3{margin:0 0 4px;font-size:14px}.recipe-select-card p{margin:0;color:var(--muted);font-size:11px}
-.label{font-size:11px;font-weight:700;color:#526176;margin-bottom:5px}
+.recipe-select-card h3{margin:0 0 3px;font-size:13.5px}.recipe-select-card p{margin:0;color:var(--muted);font-size:11px}
+.label{font-size:10.5px;font-weight:700;color:#526176;margin-bottom:4px;white-space:nowrap}
 .metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
 .metric{background:#f5f8fc;border:1px solid var(--line);border-radius:12px;padding:12px}
-.metric span{display:block;color:var(--muted);font-size:10px;margin-bottom:5px}.metric strong{font-size:16px}
+.metric span{display:block;color:var(--muted);font-size:10px;margin-bottom:5px}.metric strong{font-size:15px}
 .result{border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:12px;background:#fbfdff}
-.days{font-size:27px;font-weight:800;color:var(--primary)}
+.days{font-size:24px;font-weight:800;color:var(--primary)}
 .result-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
 .mini{background:#f1f5f9;border-radius:9px;padding:9px}.mini span{display:block;font-size:10px;color:var(--muted);margin-bottom:4px}.mini strong{font-size:12px}
 .badge{display:inline-flex;padding:5px 9px;border-radius:999px;font-size:10px;font-weight:800;background:#eaf1ff;color:var(--primary)}
@@ -124,8 +124,8 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
 .import-option.materials{background:#eaf8f2;color:var(--success)}
 .import-option.both{background:#fff4df;color:var(--warning)}
 .import-cancel{margin-top:10px;background:#eef3f8;color:#526176}
-@media(max-width:1250px){.grid{grid-template-columns:1fr}.recipe-select-card{grid-template-columns:28px 1fr 170px 120px}}
-@media(max-width:760px){.recipe-identity-grid,.formgrid{grid-template-columns:1fr}}
+@media(max-width:1250px){.grid{grid-template-columns:1fr}.recipe-select-card{grid-template-columns:26px 1fr 125px 125px 95px}}
+@media(max-width:760px){.recipe-identity-grid,.formgrid,.recipe-select-card{grid-template-columns:1fr}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="vendor/jspdf.umd.min.js"></script>
@@ -154,10 +154,10 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
   <div class="grid">
     <div class="panel">
       <h2>Select Recipes for Calculation</h2>
-      <div class="sub">Check the recipes to include, then enter the expected daily production for each selected recipe.</div>
+      <div class="sub">Check the recipes to include, then enter expected injection daily run & existing finished pellet stock.</div>
       
       <div class="recipe-tools" style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap">
-        <input id="dashRecipeSearch" placeholder="Search recipes by code or name..." style="flex:1 1 200px">
+        <input id="dashRecipeSearch" placeholder="Search recipes by code or name..." style="flex:1 1 180px">
         <button type="button" id="toggleSelectedOnly" class="btn soft" style="font-size:12px;padding:0 10px">Show Selected Only</button>
         <button type="button" id="selectAllDashRecipes" class="btn soft" style="font-size:12px;padding:0 10px">Select All</button>
         <button type="button" id="clearAllDashRecipes" class="btn soft" style="font-size:12px;padding:0 10px">Clear All</button>
@@ -167,7 +167,7 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
       
       <div class="metric-grid">
         <div class="metric"><span>Selected Recipes</span><strong id="selectedCount">0</strong></div>
-        <div class="metric"><span>Total Daily Production</span><strong id="totalDailyProduction">0 kg</strong></div>
+        <div class="metric"><span>Total Daily Injection Run</span><strong id="totalDailyProduction">0 kg</strong></div>
         <div class="metric"><span>Tracked Materials</span><strong id="trackedCount">0</strong></div>
       </div>
     </div>
@@ -175,28 +175,25 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
     <div>
       <div class="panel" style="margin-bottom:16px">
         <h2>Material Stock</h2>
-        <div class="sub">Enter only materials that you want to calculate.</div>
+        <div class="sub">Enter virgin/raw materials in warehouse that you want to calculate.</div>
         <table>
-          <thead><tr><th>Material</th><th class="num">Stock kg</th><th style="width:50px"></th></tr></thead>
+          <thead><tr><th>Material</th><th class="num" style="width:130px">Raw Stock kg</th><th style="width:50px"></th></tr></thead>
           <tbody id="stockBody"></tbody>
         </table>
-        <button id="addStock" class="btn soft full" style="margin-top:10px">+ Add Material</button>
+        <button id="addStock" class="btn soft full" style="margin-top:10px">+ Add Raw Material</button>
       </div>
 
       <div class="panel">
         <h2>Coverage Calculation</h2>
-        <div class="sub">Daily consumption is calculated automatically from each selected recipe.</div>
+        <div class="sub">Calculates ready pellets buffer + raw material days based on recipe ratio.</div>
         <div class="row space">
           <div>
-            <strong style="font-size:13px">Select Materials</strong>
+            <strong style="font-size:13px">Select Raw Materials</strong>
             <div class="multi-note">Choose up to 5 materials for one calculation.</div>
           </div>
           <button id="calculate" class="btn primary">Calculate Selected</button>
         </div>
         <div id="materialChecks" class="material-checks"></div>
-        <div class="note" style="margin-top:12px">
-          Consumption = Daily production of recipe × ingredient percentage of total recipe weight.
-        </div>
         <div id="resultBox" class="results-stack"></div>
       </div>
     </div>
@@ -407,7 +404,8 @@ const defaults = {
       color:"Orange",
       pvcBase:250,
       selected:true,
-      dailyProduction:3000,
+      dailyProduction:5000,
+      pelletStockKg:40000,
       ingredients:[
         {material:"PVC Resin",grade:"PVC K-57",kg:250},
         {material:"Calcium Carbonate",grade:"",kg:7.5},
@@ -423,7 +421,7 @@ const defaults = {
     }
   ],
   stocks:[
-    {material:"Stabilizer",grade:"SAG-1015",kg:8000}
+    {material:"Stabilizer",grade:"SAG-1015",kg:2000}
   ],
   rawMaterials:[]
 }
@@ -467,6 +465,7 @@ function stableStateFromCloud(payload){
       pvcBase:Number(r.pvcBase ?? r.actualResinKg)||100,
       selected:Array.isArray(payload.selectedRecipeIds)?payload.selectedRecipeIds.includes(r.id):idx===0,
       dailyProduction:Number((payload.recipeDailyProds||{})[r.id] ?? r.dailyProduction ?? r.expectedDailyProductionKg)||0,
+      pelletStockKg:Number(r.pelletStockKg ?? r.compoundStockKg)||0,
       ingredients:(r.ingredients||[]).map(i=>({
         material:(i.material ?? i.materialName ?? i.name ?? "").trim(),
         grade:(i.grade ?? "").trim(),
@@ -517,7 +516,7 @@ async function loadCloudState(){
   migrateState();cacheState();isDirty=false;updateSaveStatus();renderDashboard();renderRecipes();renderRawMaterials();setCloudStatus("Hostinger Connected","online");
 }
 window.addEventListener("beforeunload",e=>{if(isDirty){e.preventDefault();e.returnValue=""}});
-function total(r){return r.ingredients.reduce((s,i)=>s+(+i.kg||0),0)}
+function total(r){return (r.ingredients||[]).reduce((s,i)=>s+(+i.kg||0),0)}
 function fmt(n,d=4){
   const num=Number(n);
   if(!Number.isFinite(num)||num===0)return "0";
@@ -611,6 +610,8 @@ function migrateState(){
       productionCode,
       name,
       color:String(r.color||inferRecipeColor(name)).trim(),
+      dailyProduction:Number(r.dailyProduction)||0,
+      pelletStockKg:Number(r.pelletStockKg)||0,
       ingredients:(r.ingredients||[]).map(i=>({
         ...i,
         material:itemMaterial(i),
@@ -687,12 +688,26 @@ function renderDashboard(){
       d.className="recipe-select-card"+(r.selected?" selected":"");
       d.innerHTML=`
         <input class="check" type="checkbox" ${r.selected?"checked":""}>
-        <div><h3>${r.productionCode?`<span class="recipe-code-badge">${esc(r.productionCode)}</span>`:""}${r.code?`<span class="recipe-code-badge">${esc(r.code)}</span>`:""}${esc(r.name)}</h3><p>${r.ingredients.length} ingredients · Total batch ${fmt(total(r))} kg</p></div>
-        <div><div class="label">Daily Production (kg/day)</div><input type="number" min="0" step="1" value="${r.dailyProduction||0}"></div>
-        <div><div class="label">Material Consumption</div><button class="btn soft full">View Recipe</button></div>`;
+        <div>
+          <h3>${r.productionCode?`<span class="recipe-code-badge">${esc(r.productionCode)}</span>`:""}${r.code?`<span class="recipe-code-badge">${esc(r.code)}</span>`:""}${esc(r.name)}</h3>
+          <p>${r.ingredients.length} ing · Batch: ${fmt(total(r),2)} kg</p>
+        </div>
+        <div>
+          <div class="label">Pellets Stock (kg)</div>
+          <input type="number" min="0" step="1" class="pellet-stock-input" value="${Number(r.pelletStockKg)||0}">
+        </div>
+        <div>
+          <div class="label">Injection (kg/day)</div>
+          <input type="number" min="0" step="1" class="daily-prod-input" value="${Number(r.dailyProduction)||0}">
+        </div>
+        <div>
+          <div class="label">Recipe</div>
+          <button class="btn soft full view-recipe-btn" style="height:38px">View</button>
+        </div>`;
       d.querySelector(".check").addEventListener("change",e=>{r.selected=e.target.checked;save();renderDashboard()});
-      d.querySelector('input[type="number"]').addEventListener("input",e=>{r.dailyProduction=+e.target.value||0;save();updateSummary()});
-      d.querySelector("button").addEventListener("click",()=>{state.activeRecipe=i;save();showPage("recipes");renderRecipes()});
+      d.querySelector(".pellet-stock-input").addEventListener("input",e=>{r.pelletStockKg=+e.target.value||0;save()});
+      d.querySelector(".daily-prod-input").addEventListener("input",e=>{r.dailyProduction=+e.target.value||0;save();updateSummary()});
+      d.querySelector(".view-recipe-btn").addEventListener("click",()=>{state.activeRecipe=i;save();showPage("recipes");renderRecipes()});
       box.appendChild(d);
     });
   }
@@ -901,6 +916,7 @@ function renderRecipes(){
       pvcBase:100,
       selected:false,
       dailyProduction:0,
+      pelletStockKg:0,
       ingredients:[
         {material:"PVC Resin",grade:"",kg:100},
         {material:"Stabilizer",grade:"",kg:0}
@@ -910,7 +926,7 @@ function renderRecipes(){
   }
 
   if(state.activeRecipe<0||state.activeRecipe>=state.recipes.length)state.activeRecipe=0;
-  state.recipes.forEach(r=>{if(!r.category)r.category="General";if(r.code==null)r.code="";if(r.productionCode==null)r.productionCode="";if(r.color==null)r.color=""});
+  state.recipes.forEach(r=>{if(!r.category)r.category="General";if(r.code==null)r.code="";if(r.productionCode==null)r.productionCode="";if(r.color==null)r.color="";if(r.pelletStockKg==null)r.pelletStockKg=0});
 
   const search=(document.getElementById("recipeSearch").value||"").trim().toLowerCase();
   const selectedCategory=document.getElementById("recipeCategoryFilter").value||"";
@@ -1056,6 +1072,7 @@ function importRecipesFromRows(rows,showMessage=true){
   const colorKey=findKey(["Color","Recipe Color","Mix Color"]);
   const pvcBaseKey=findKey(["Actual PVC Resin in Batch (kg)","PVC Resin Base (kg)","PVC Resin Base","PVC Base"]);
   const dailyKey=findKey(["Daily Production (kg/day)","Daily Production","Production kg/day"]);
+  const pelletStockKey=findKey(["Pellet Stock (kg)","Finished Pellets (kg)","Pellet Stock","Pellets (kg)"]);
   const materialKey=findKey(["Material","Ingredient","Raw Material"]);
   const gradeKey=findKey(["Grade / Trade Name","Grade","Trade Name","Commercial Name"]);
   const kgKey=findKey(["Actual kg / Batch","kg / Batch","kg/Batch","Quantity kg","kg"]);
@@ -1081,6 +1098,7 @@ function importRecipesFromRows(rows,showMessage=true){
         color:colorKey?String(row[colorKey]??"").trim():inferRecipeColor(cleanName),
         pvcBase:pvcBaseKey?Number(row[pvcBaseKey])||0:0,
         dailyProduction:dailyKey?Number(row[dailyKey])||0:0,
+        pelletStockKg:pelletStockKey?Number(row[pelletStockKey])||0:0,
         selected:false,
         ingredients:[]
       });
@@ -1125,7 +1143,8 @@ function importRecipesFromRows(rows,showMessage=true){
         productionCode:recipe.productionCode||current.productionCode||"",
         color:recipe.color||current.color||inferRecipeColor(recipe.name),
         selected:current.selected??recipe.selected,
-        dailyProduction:recipe.dailyProduction||current.dailyProduction||0
+        dailyProduction:recipe.dailyProduction||current.dailyProduction||0,
+        pelletStockKg:recipe.pelletStockKg||current.pelletStockKg||0
       };
       updated++;
       return;
@@ -1252,13 +1271,13 @@ function downloadExcelTemplate(){
     return;
   }
   const data=[
-    ["Recipe Code","Production Code","Recipe Name","Recipe Category","Color","Actual PVC Resin in Batch (kg)","Daily Production (kg/day)","Material","Grade / Trade Name","Actual kg / Batch"],
-    ["KH-120","MF-01","Orange PVC Fitting","Fitting","Orange",250,3000,"PVC Resin","PVC K-57",250],
-    ["KH-120","MF-01","Orange PVC Fitting","Fitting","Orange",250,3000,"Calcium Carbonate","",7.5],
-    ["KH-120","MF-01","Orange PVC Fitting","Fitting","Orange",250,3000,"Stabilizer","SAG-1015",13.75]
+    ["Recipe Code","Production Code","Recipe Name","Recipe Category","Color","Actual PVC Resin in Batch (kg)","Daily Production (kg/day)","Pellet Stock (kg)","Material","Grade / Trade Name","Actual kg / Batch"],
+    ["KH-120","MF-01","Orange PVC Fitting","Fitting","Orange",250,5000,40000,"PVC Resin","PVC K-57",250],
+    ["KH-120","MF-01","Orange PVC Fitting","Fitting","Orange",250,5000,40000,"Calcium Carbonate","",7.5],
+    ["KH-120","MF-01","Orange PVC Fitting","Fitting","Orange",250,5000,40000,"Stabilizer","SAG-1015",13.75]
   ];
   const sheet=XLSX.utils.aoa_to_sheet(data);
-  sheet["!cols"]=[{wch:16},{wch:18},{wch:28},{wch:18},{wch:14},{wch:30},{wch:26},{wch:24},{wch:24},{wch:18}];
+  sheet["!cols"]=[{wch:16},{wch:18},{wch:28},{wch:18},{wch:14},{wch:30},{wch:26},{wch:18},{wch:24},{wch:24},{wch:18}];
   const workbook=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook,sheet,"Recipes Import");
   const rawData=[
@@ -1277,7 +1296,7 @@ function exportCompleteBackup(){
   const wb=XLSX.utils.book_new();
   const keys=state.recipes.map((_,i)=>`R${String(i+1).padStart(4,"0")}`);
   const info=[{Field:"Backup Type",Value:"Material Planner Complete Backup"},{Field:"Backup Version",Value:2},{Field:"Exported At",Value:new Date().toISOString()},{Field:"Active Recipe Index",Value:state.activeRecipe||0}];
-  const recipes=state.recipes.map((r,i)=>({"Recipe Key":keys[i],"Recipe Code":r.code||"","Production Code":r.productionCode||"","Recipe Name":r.name||"","Category":r.category||"General","Color":r.color||"","PVC Resin Base (kg)":Number(r.pvcBase)||0,"Selected":r.selected?"Yes":"No","Daily Production (kg/day)":Number(r.dailyProduction)||0}));
+  const recipes=state.recipes.map((r,i)=>({"Recipe Key":keys[i],"Recipe Code":r.code||"","Production Code":r.productionCode||"","Recipe Name":r.name||"","Category":r.category||"General","Color":r.color||"","PVC Resin Base (kg)":Number(r.pvcBase)||0,"Selected":r.selected?"Yes":"No","Daily Production (kg/day)":Number(r.dailyProduction)||0,"Pellet Stock (kg)":Number(r.pelletStockKg)||0}));
   const ingredients=[];
   state.recipes.forEach((r,i)=>(r.ingredients||[]).forEach((item,line)=>ingredients.push({"Recipe Key":keys[i],"Line No":line+1,"Material":itemMaterial(item),"Grade / Trade Name":itemGrade(item),"Actual kg / Batch":Number(item.kg)||0})));
   const materials=(state.rawMaterials||[]).map(m=>({"Material ID":m.id||makeMaterialId(),"Material Name":itemMaterial(m),"Grade / Trade Name":itemGrade(m),"Country":m.country||"","Company":m.company||"","Stock WIP (kg)":Number(m.stockWipKg)||0,"Stock WH (kg)":Number(m.stockWhKg)||0,"Total Stock (kg)":materialTotalStock(m)}));
@@ -1301,6 +1320,7 @@ async function importCompleteBackup(file){
   const recipes=recipeRows.map((row,index)=>({
     code:String(row["Recipe Code"]||"").trim().toUpperCase(),productionCode:normalizedProductionCode(row["Production Code"]||""),name:String(row["Recipe Name"]||`Recipe ${index+1}`),category:String(row.Category||"General"),color:String(row.Color||inferRecipeColor(row["Recipe Name"]||"")),
     pvcBase:Number(row["PVC Resin Base (kg)"])||100,selected:String(row.Selected||"").toLowerCase()==="yes",dailyProduction:Number(row["Daily Production (kg/day)"])||0,
+    pelletStockKg:Number(row["Pellet Stock (kg)"])||0,
     ingredients:(ingredientMap.get(String(row["Recipe Key"]||""))||[]).sort((a,b)=>a.line-b.line).map(({material,grade,kg})=>({material,grade,kg}))
   })).filter(r=>r.ingredients.length);
   if(!recipes.length)throw new Error("No valid recipes were found in the backup.");
@@ -1357,6 +1377,7 @@ function createNewRecipe(){
     pvcBase:100,
     selected:false,
     dailyProduction:0,
+    pelletStockKg:0,
     ingredients:[
       {material:"PVC Resin",grade:"",kg:100},
       {material:"",grade:"",kg:0}
@@ -1772,36 +1793,82 @@ async function exportSelectedRecipesPdf(){
 
 function calculateOneMaterial(key){
   const selected=state.recipes.filter(r=>r.selected);
-  let daily=0;
-  const parts=[];
+  let totalDailyInjection=0;
+  let totalRawDailyConsumption=0;
+  let totalPelletBufferKg=0;
+  const recipeBreakdown=[];
 
   selected.forEach(r=>{
     const t=total(r);
-    const kg=r.ingredients.filter(i=>itemKey(i)===key).reduce((sum,i)=>sum+(+i.kg||0),0);
-    const pct=t?kg/t*100:0;
-    const cons=(+r.dailyProduction||0)*pct/100;
-    if(cons>0){daily+=cons;parts.push({name:r.name,pct,cons})}
+    const rawInBatch=r.ingredients.filter(i=>itemKey(i)===key).reduce((sum,i)=>sum+(+i.kg||0),0);
+    const pct=t?rawInBatch/t*100:0;
+    const dailyInj=Number(r.dailyProduction)||0;
+    const pelletStock=Number(r.pelletStockKg)||0;
+    const rawDailyCons=dailyInj*(pct/100);
+
+    if(pct>0){
+      totalDailyInjection += dailyInj;
+      totalRawDailyConsumption += rawDailyCons;
+      totalPelletBufferKg += pelletStock;
+
+      const pelletDays = dailyInj > 0 ? (pelletStock / dailyInj) : 0;
+      recipeBreakdown.push({
+        name: r.name,
+        code: r.productionCode || r.code || '',
+        pct,
+        pelletStock,
+        dailyInj,
+        pelletDays,
+        rawDailyCons
+      });
+    }
   });
 
   const stock=state.stocks.find(s=>itemKey(s)===key);
-  const stockkg=stock?+stock.kg||0:0;
+  const rawStockKg=stock?+stock.kg||0:0;
   const label=stock?compactItemLabel(stock):key;
 
-  if(daily<=0){
+  if(recipeBreakdown.length === 0){
     return `<div class="result"><strong>${esc(label)}</strong>
-      <div class="note" style="margin-top:10px">This material is not used in the selected recipes.</div></div>`;
+      <div class="note" style="margin-top:10px">This material is not present in the selected recipes.</div></div>`;
   }
 
-  const days=stockkg/daily;
+  if(totalDailyInjection <= 0){
+    return `<div class="result"><strong>${esc(label)}</strong>
+      <div class="note" style="margin-top:10px">Enter daily injection production (kg/day) for selected recipes to calculate days.</div></div>`;
+  }
+
+  const overallPelletDays = totalDailyInjection > 0 ? (totalPelletBufferKg / totalDailyInjection) : 0;
+  const rawCoverageDays = totalRawDailyConsumption > 0 ? (rawStockKg / totalRawDailyConsumption) : 0;
+  const totalCoverageDays = overallPelletDays + rawCoverageDays;
+
   return `<div class="result">
     <div class="row space">
-      <div><strong>${esc(label)}</strong><div class="sub" style="margin:3px 0 0">Combined selected recipes</div></div>
-      <div class="days">${fmt(days,1)} days</div>
+      <div>
+        <strong>${esc(label)}</strong>
+        <div class="sub" style="margin:3px 0 0">Combined Selected Products</div>
+      </div>
+      <div style="text-align:right">
+        <div class="days">${fmt(totalCoverageDays, 1)} Days</div>
+        <div style="font-size:10.5px;color:var(--muted);font-weight:700">Total Coverage Buffer</div>
+      </div>
     </div>
-    <div class="result-grid">
-      <div class="mini"><span>Available Stock</span><strong>${fmt(stockkg)} kg</strong></div>
-      <div class="mini"><span>Total Daily Consumption</span><strong>${fmt(daily)} kg/day</strong></div>
-      ${parts.map(p=>`<div class="mini"><span>${esc(p.name)} · ${fmt(p.pct,3)}%</span><strong>${fmt(p.cons)} kg/day</strong></div>`).join("")}
+    
+    <div class="result-grid" style="margin-top:10px">
+      <div class="mini"><span>Finished Pellets Buffer</span><strong>${fmt(overallPelletDays,1)} days (${fmt(totalPelletBufferKg,0)} kg)</strong></div>
+      <div class="mini"><span>Raw Material Buffer</span><strong>${fmt(rawCoverageDays,1)} days (${fmt(rawStockKg,0)} kg)</strong></div>
+      <div class="mini"><span>Raw Daily Consumption</span><strong>${fmt(totalRawDailyConsumption,2)} kg/day</strong></div>
+      <div class="mini"><span>Total Daily Injection Run</span><strong>${fmt(totalDailyInjection,0)} kg/day</strong></div>
+    </div>
+
+    <div style="margin-top:10px;font-size:11px;font-weight:700;color:var(--muted)">Breakdown per Recipe:</div>
+    <div class="results-stack" style="gap:6px;margin-top:5px">
+      ${recipeBreakdown.map(b=>`
+        <div class="mini row space" style="padding:7px 10px">
+          <span><strong>${esc(b.code ? '['+b.code+'] ' : '')}${esc(b.name)}</strong> (${fmt(b.pct,2)}% in batch)</span>
+          <span>Pellets: <strong>${fmt(b.pelletDays,1)} d</strong> | Daily Raw: <strong>${fmt(b.rawDailyCons,2)} kg/d</strong></span>
+        </div>
+      `).join("")}
     </div>
   </div>`;
 }
