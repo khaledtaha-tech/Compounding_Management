@@ -22,7 +22,7 @@ nav button.active{background:var(--primary);color:#fff}
 .save-status{font-size:11px;font-weight:800;padding:7px 10px;border-radius:999px}
 .save-status.saved{background:#eaf8f2;color:var(--success)}
 .save-status.unsaved{background:#fff4df;color:var(--warning)}
-.material-checks{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.material-checks{display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));gap:8px;margin-top:10px}
 .material-check{display:flex;align-items:center;gap:9px;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff;cursor:pointer}
 .material-check input{width:17px;height:17px;accent-color:var(--primary)}
 .material-check span{font-size:12px;font-weight:700}
@@ -49,12 +49,12 @@ nav button.active{background:var(--primary);color:#fff}
 .toast{position:fixed;right:22px;bottom:22px;background:#1d2939;color:#fff;padding:12px 16px;border-radius:10px;box-shadow:var(--shadow);display:none;z-index:1000;font-size:12px}.toast.show{display:block}
 .page{display:none;padding:18px}
 .page.active{display:block}
-.grid{display:grid;grid-template-columns:1.25fr 0.75fr;gap:18px;align-items:start}
+.dashboard-top-row{display:grid;grid-template-columns:1.2fr 0.8fr;gap:18px;align-items:start;margin-bottom:18px}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:18px}
 h2{margin:0 0 5px;font-size:18px} .sub{color:var(--muted);font-size:12px;margin-bottom:15px}
 table{width:100%;border-collapse:collapse;table-layout:fixed}
 th{background:#f2f6fb;color:#526176;font-size:11px;text-transform:uppercase;padding:11px;border-bottom:1px solid var(--line);text-align:left}
-td{padding:10px;border-bottom:1px solid #edf1f5;font-size:13px}
+td{padding:8px 10px;border-bottom:1px solid #edf1f5;font-size:13px}
 input,select{width:100%;height:39px;border:1px solid var(--line);border-radius:9px;padding:0 10px;font-size:13px;outline:none;background:#fff}
 input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(47,111,237,.10)}
 .btn{height:40px;border:0;border-radius:10px;padding:0 14px;font-weight:700;cursor:pointer}
@@ -66,40 +66,60 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
 .metric span{display:block;color:var(--muted);font-size:10px;margin-bottom:5px}.metric strong{font-size:15px}
 .result{border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:12px;background:#fbfdff}
 .days{font-size:24px;font-weight:800;color:var(--primary)}
-.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.result-grid{display:grid;grid-template-columns:repeat(4, 1fr);gap:10px;margin-top:10px}
 .mini{background:#f1f5f9;border-radius:9px;padding:9px}.mini span{display:block;font-size:10px;color:var(--muted);margin-bottom:4px}.mini strong{font-size:12px}
 .badge{display:inline-flex;padding:5px 9px;border-radius:999px;font-size:10px;font-weight:800;background:#eaf1ff;color:var(--primary)}
-.recipe-selector-wrap{display:grid;grid-template-columns:180px minmax(320px,1fr);gap:12px;align-items:center;margin-bottom:15px}.recipe-selector-wrap select{font-weight:700;background:#f8fbff}.recipe-tools{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}.recipe-list-empty{width:100%;padding:24px;border:1px dashed var(--line);border-radius:12px;text-align:center;color:var(--muted)}
+.recipe-selector-wrap{display:grid;grid-template-columns:180px minmax(320px,1fr);gap:12px;align-items:center;margin-bottom:15px}.recipe-selector-wrap select{font-weight:700;background:#f8fbff}.recipe-tools{display:grid;grid-template-columns:minmax(180px,1fr) 180px auto auto auto auto auto;gap:8px;margin-bottom:14px}.recipe-list-empty{width:100%;padding:24px;border:1px dashed var(--line);border-radius:12px;text-align:center;color:var(--muted)}
+.recipe-tabs button{border:1px solid var(--line);background:#fff;padding:9px 12px;border-radius:9px;font-weight:700;cursor:pointer}
+.recipe-tabs button.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 .formgrid{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:14px}
 .recipe-identity-grid{display:grid;grid-template-columns:180px 150px minmax(280px,2fr) minmax(150px,1fr) minmax(130px,.8fr);gap:12px;margin-bottom:14px}
 .recipe-code-input{text-transform:uppercase;font-weight:800;letter-spacing:.5px;background:#f8fbff}
 .production-code-input{text-transform:uppercase;font-weight:900;letter-spacing:.5px;background:#eef4ff;color:var(--primary)}
 .recipe-code-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.recipe-code-row .btn{height:39px;white-space:nowrap}
+.recipe-code-badge{display:inline-flex;align-items:center;padding:4px 8px;border-radius:8px;background:#eaf1ff;color:var(--primary);font-size:10px;font-weight:800;letter-spacing:.4px;margin-right:7px}
 .note{background:#f8fbff;border:1px solid #dce8fb;border-radius:11px;padding:12px;color:#5f6f84;font-size:11px;line-height:1.5}
 .num{text-align:right}.center{text-align:center}.hidden{display:none}
 .recipe-total-row td{border-top:2px solid #b8cdf8;border-bottom:0;padding:11px 12px;background:#f7faff;vertical-align:middle}
 .recipe-total-row .totals-label{color:#526176;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.55px}
 .table-total{text-align:right;white-space:nowrap}
-.table-total span{display:block;color:#667085;font-size:9px;font-weight:800;text-transform:uppercase;margin-bottom:4px}
+.table-total span{display:block;color:#667085;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.45px;margin-bottom:4px}
 .table-total strong{display:block;color:#1d2939;font-size:16px;line-height:1.1}
 .table-total.batch strong,.table-total.phr strong{color:var(--primary)}
-.export-overlay,.import-overlay{position:fixed;inset:0;background:rgba(20,32,50,.5);display:none;align-items:center;justify-content:center;padding:24px;z-index:1002}
-.export-overlay.open,.import-overlay.open{display:flex}
-.export-card,.import-card{width:min(680px,100%);max-height:88vh;background:#fff;border-radius:18px;box-shadow:0 25px 70px rgba(20,32,50,.28);display:flex;flex-direction:column;overflow:hidden}
-.export-head,.export-foot{padding:16px 20px;border-bottom:1px solid var(--line)}
-.export-foot{border-bottom:0;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
-.icon-btn{width:34px;height:34px;border:0;border-radius:8px;background:#eef3f8;cursor:pointer}
-.export-select-all{padding:12px 20px;background:#f7faff;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center;font-weight:700}
-.export-list{padding:12px 20px;overflow:auto;display:flex;flex-direction:column;gap:8px}
-.export-recipe-item{display:grid;grid-template-columns:20px 1fr auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:10px}
-.import-card{width:480px;padding:22px}
-.import-options{display:grid;grid-template-columns:1fr;gap:10px;margin-top:16px}
-.import-option{height:46px;border:0;border-radius:10px;font-weight:700;cursor:pointer}
+.export-overlay{position:fixed;inset:0;background:rgba(20,32,50,.52);display:none;align-items:center;justify-content:center;padding:24px;z-index:1002}
+.export-overlay.open{display:flex}
+.export-card{width:min(680px,100%);max-height:88vh;background:#fff;border-radius:18px;box-shadow:0 25px 70px rgba(20,32,50,.28);display:flex;flex-direction:column;overflow:hidden}
+.export-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:22px 24px 14px;border-bottom:1px solid var(--line)}
+.export-head h2{font-size:21px;margin-bottom:5px}.export-head .sub{margin:0}
+.icon-btn{width:36px;height:36px;border:0;border-radius:10px;background:#eef3f8;color:#526176;font-size:22px;line-height:1;cursor:pointer}
+.export-select-all{display:flex;align-items:center;gap:11px;padding:13px 24px;background:#f7faff;border-bottom:1px solid var(--line);font-size:13px;font-weight:800;cursor:pointer}
+.export-select-all input,.export-recipe-item input{width:18px;height:18px;accent-color:var(--primary);flex:0 0 auto}
+.export-list{padding:12px 24px;overflow:auto;display:flex;flex-direction:column;gap:8px}
+.export-recipe-item{display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:11px;background:#fff;cursor:pointer}
+.export-recipe-item:hover,.export-recipe-item.checked{border-color:#aac4fa;background:#f8fbff}
+.export-recipe-title{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.export-recipe-meta{color:var(--muted);font-size:10px;margin-top:4px}
+.export-recipe-total{color:#344054;font-size:11px;font-weight:800;white-space:nowrap}
+.export-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 24px 20px;border-top:1px solid var(--line);background:#fff}
+.export-count{color:var(--muted);font-size:11px;font-weight:700}.export-actions{display:flex;gap:8px}
+#recipesPage .recipe-tools{display:flex;flex-wrap:wrap}
+#recipesPage .recipe-tools>input:not([type="file"]){flex:1 1 260px}
+#recipesPage .recipe-tools>#recipeCategoryFilter{flex:0 0 180px}
+#materialsPage .recipe-tools{display:flex;flex-wrap:wrap}
+#materialsPage .recipe-tools>input{flex:1 1 260px}
+#materialsPage .recipe-tools>#materialSortBy{flex:0 0 200px}
+.import-overlay{position:fixed;inset:0;background:rgba(20,32,50,.48);display:none;align-items:center;justify-content:center;z-index:1001}
+.import-overlay.open{display:flex}
+.import-card{width:520px;background:#fff;border-radius:18px;padding:24px;box-shadow:0 25px 70px rgba(20,32,50,.24)}
+.import-card h2{margin:0 0 6px;font-size:22px}
+.import-options{display:grid;grid-template-columns:1fr;gap:10px;margin-top:18px}
+.import-option{height:48px;border:0;border-radius:11px;font-weight:800;cursor:pointer;font-size:14px}
 .import-option.recipes{background:var(--primary);color:#fff}
 .import-option.materials{background:#eaf8f2;color:var(--success)}
 .import-option.both{background:#fff4df;color:var(--warning)}
-.import-cancel{background:#eef3f8;color:#526176}
-@media(max-width:1250px){.grid{grid-template-columns:1fr}}
+.import-cancel{margin-top:10px;background:#eef3f8;color:#526176}
+@media(max-width:1100px){.dashboard-top-row{grid-template-columns:1fr}.result-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:760px){.recipe-identity-grid,.formgrid{grid-template-columns:1fr}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -126,56 +146,54 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
 </header>
 
 <section id="dashboardPage" class="page active">
-  <div class="grid">
+  <div class="dashboard-top-row">
     <div class="panel">
       <h2>Selected Recipes for Calculation</h2>
-      <div class="sub">Add only the active recipes you want to include in the material calculation.</div>
+      <div class="sub">Add only active recipes to include in material calculation.</div>
       
       <table>
         <thead>
           <tr>
-            <th style="width:40%">Selected Recipe</th>
-            <th class="num" style="width:26%">Pellets Stock (kg)</th>
-            <th class="num" style="width:26%">Injection (kg/day)</th>
-            <th style="width:8%"></th>
+            <th style="width:48%">Selected Recipe</th>
+            <th class="num" style="width:24%">Pellets (kg)</th>
+            <th class="num" style="width:24%">Inj (kg/d)</th>
+            <th style="width:40px"></th>
           </tr>
         </thead>
         <tbody id="selectedRecipesBody"></tbody>
       </table>
-      <button id="addCalcRecipeBtn" class="btn soft full" style="margin-top:12px">+ Add Recipe to Calculation</button>
+      <button id="addCalcRecipeBtn" class="btn soft full" style="margin-top:10px">+ Add Recipe to Calculation</button>
       
       <div class="metric-grid">
         <div class="metric"><span>Selected Recipes</span><strong id="selectedCount">0</strong></div>
-        <div class="metric"><span>Total Daily Injection Run</span><strong id="totalDailyProduction">0 kg</strong></div>
+        <div class="metric"><span>Total Daily Injection</span><strong id="totalDailyProduction">0 kg</strong></div>
         <div class="metric"><span>Tracked Materials</span><strong id="trackedCount">0</strong></div>
       </div>
     </div>
 
-    <div>
-      <div class="panel" style="margin-bottom:16px">
-        <h2>Material Stock</h2>
-        <div class="sub">Enter virgin/raw materials in warehouse that you want to calculate.</div>
-        <table>
-          <thead><tr><th>Material</th><th class="num" style="width:130px">Raw Stock kg</th><th style="width:45px"></th></tr></thead>
-          <tbody id="stockBody"></tbody>
-        </table>
-        <button id="addStock" class="btn soft full" style="margin-top:10px">+ Add Raw Material</button>
-      </div>
-
-      <div class="panel">
-        <h2>Coverage Calculation</h2>
-        <div class="sub">Calculates ready pellets buffer + raw material days based on recipe ratio.</div>
-        <div class="row space">
-          <div>
-            <strong style="font-size:13px">Select Raw Materials</strong>
-            <div class="multi-note">Choose up to 5 materials for calculation.</div>
-          </div>
-          <button id="calculate" class="btn primary">Calculate Selected</button>
-        </div>
-        <div id="materialChecks" class="material-checks"></div>
-        <div id="resultBox" class="results-stack"></div>
-      </div>
+    <div class="panel">
+      <h2>Material Stock</h2>
+      <div class="sub">Enter warehouse raw material stock to calculate.</div>
+      <table>
+        <thead><tr><th>Material</th><th class="num" style="width:120px">Raw Stock kg</th><th style="width:40px"></th></tr></thead>
+        <tbody id="stockBody"></tbody>
+      </table>
+      <button id="addStock" class="btn soft full" style="margin-top:10px">+ Add Raw Material</button>
     </div>
+  </div>
+
+  <div class="panel">
+    <h2>Coverage Calculation</h2>
+    <div class="sub">Calculates ready pellets buffer + raw material days based on recipe ratio.</div>
+    <div class="row space">
+      <div>
+        <strong style="font-size:13px">Select Raw Materials</strong>
+        <div class="multi-note">Choose up to 5 materials for calculation.</div>
+      </div>
+      <button id="calculate" class="btn primary">Calculate Selected</button>
+    </div>
+    <div id="materialChecks" class="material-checks"></div>
+    <div id="resultBox" class="results-stack"></div>
   </div>
 </section>
 
@@ -190,8 +208,8 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
     </div>
 
     <div class="recipe-tools">
-      <input id="recipeSearch" placeholder="Search recipes..." style="flex:1 1 200px">
-      <select id="recipeCategoryFilter" style="flex:0 0 160px">
+      <input id="recipeSearch" placeholder="Search recipes...">
+      <select id="recipeCategoryFilter">
         <option value="">All Categories</option>
       </select>
       <button id="newRecipe" class="btn primary">+ New Recipe</button>
@@ -266,7 +284,7 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
           <td class="num">
             <div class="table-total batch">
               <span>Batch Weight</span>
-              <strong><span id="totalBatchValue">0</span> kg</strong>
+              <strong><span id="totalBatchValue" style="display:inline;color:inherit;font:inherit;letter-spacing:0;text-transform:none;margin:0">0</span> kg</strong>
             </div>
           </td>
           <td class="num">
@@ -302,8 +320,8 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
     </div>
 
     <div class="recipe-tools">
-      <input id="materialSearch" placeholder="Search materials, grades, countries, or companies..." style="flex:1 1 200px">
-      <select id="materialSortBy" style="font-weight:700;background:#f8fbff;flex:0 0 180px">
+      <input id="materialSearch" placeholder="Search materials, grades, countries, or companies...">
+      <select id="materialSortBy" style="font-weight:700;background:#f8fbff">
         <option value="name">Sort by: Name A-Z</option>
         <option value="name-desc">Sort by: Name Z-A</option>
         <option value="stock">Sort by: Total Stock (High to Low)</option>
@@ -753,7 +771,6 @@ function allMaterialItems(){
 
 function renderStocks(){
   const body=document.getElementById("stockBody");
-  if(!body) return;
   body.innerHTML="";
   const allItems=allMaterialItems();
 
@@ -765,7 +782,7 @@ function renderStocks(){
     tr.innerHTML=`
       <td>
         <div class="combo-wrap">
-          <input class="combo-input" value="${esc(compactItemLabel(s))}" placeholder="Select raw material" autocomplete="off">
+          <input class="combo-input" value="${esc(compactItemLabel(s))}" placeholder="Select material / grade" autocomplete="off">
           <span class="combo-arrow">▼</span>
           <div class="combo-list"></div>
         </div>
@@ -788,7 +805,8 @@ function renderStocks(){
       filtered.forEach(item=>{
         const option=document.createElement("div");
         option.className="combo-option";
-        option.innerHTML=`<strong>${esc(itemMaterial(item)||"—")}</strong><br><span style="color:var(--muted)">${esc(itemGrade(item)||"No grade")}</span>`;
+        option.innerHTML=`<strong>${esc(itemMaterial(item)||"—")}</strong><br>
+          <span style="color:var(--muted)">${esc(itemGrade(item)||"No grade / trade name")}</span>`;
         option.addEventListener("mousedown",e=>{
           e.preventDefault();
           s.material=itemMaterial(item);
@@ -1869,15 +1887,15 @@ function calculateOneMaterial(key){
       </div>
     </div>
     
-    <div class="result-grid" style="margin-top:10px">
+    <div class="result-grid">
       <div class="mini"><span>Finished Pellets Buffer</span><strong>${fmt(overallPelletDays,1)} days (${fmt(totalPelletBufferKg,0)} kg)</strong></div>
       <div class="mini"><span>Raw Material Buffer</span><strong>${fmt(rawCoverageDays,1)} days (${fmt(rawStockKg,0)} kg)</strong></div>
       <div class="mini"><span>Raw Daily Consumption</span><strong>${fmt(totalRawDailyConsumption,2)} kg/day</strong></div>
       <div class="mini"><span>Total Daily Injection Run</span><strong>${fmt(totalDailyInjection,0)} kg/day</strong></div>
     </div>
 
-    <div style="margin-top:10px;font-size:11px;font-weight:700;color:var(--muted)">Breakdown per Recipe:</div>
-    <div class="results-stack" style="gap:6px;margin-top:5px">
+    <div style="margin-top:12px;font-size:11px;font-weight:700;color:var(--muted)">Breakdown per Recipe:</div>
+    <div class="results-stack" style="gap:6px;margin-top:6px">
       ${recipeBreakdown.map(b=>`
         <div class="mini row space" style="padding:7px 10px">
           <span><strong>${esc(b.code ? '['+b.code+'] ' : '')}${esc(b.name)}</strong> (${fmt(b.pct,2)}% in batch)</span>
