@@ -49,7 +49,7 @@ nav button.active{background:var(--primary);color:#fff}
 .toast{position:fixed;right:22px;bottom:22px;background:#1d2939;color:#fff;padding:12px 16px;border-radius:10px;box-shadow:var(--shadow);display:none;z-index:1000;font-size:12px}.toast.show{display:block}
 .page{display:none;padding:18px}
 .page.active{display:block}
-.grid{display:grid;grid-template-columns:1.2fr 0.8fr;gap:18px;align-items:start}
+.grid{display:grid;grid-template-columns:1.25fr 0.75fr;gap:18px;align-items:start}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:18px}
 h2{margin:0 0 5px;font-size:18px} .sub{color:var(--muted);font-size:12px;margin-bottom:15px}
 table{width:100%;border-collapse:collapse;table-layout:fixed}
@@ -57,15 +57,10 @@ th{background:#f2f6fb;color:#526176;font-size:11px;text-transform:uppercase;padd
 td{padding:10px;border-bottom:1px solid #edf1f5;font-size:13px}
 input,select{width:100%;height:39px;border:1px solid var(--line);border-radius:9px;padding:0 10px;font-size:13px;outline:none;background:#fff}
 input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(47,111,237,.10)}
-.check{width:18px;height:18px;accent-color:var(--primary)}
 .btn{height:40px;border:0;border-radius:10px;padding:0 14px;font-weight:700;cursor:pointer}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .primary{background:var(--primary);color:#fff}.soft{background:var(--primary2);color:var(--primary)}.danger{background:#fff0f0;color:var(--danger)}
 .full{width:100%}.row{display:flex;gap:9px;align-items:center}.space{justify-content:space-between}
-.recipe-select-card{border:1px solid var(--line);border-radius:13px;padding:12px;margin-bottom:10px;background:#fff;display:grid;grid-template-columns:26px 1fr 125px 125px 95px;gap:10px;align-items:center}
-.recipe-select-card.selected{border-color:var(--primary);background:#f8fbff}
-.recipe-select-card h3{margin:0 0 3px;font-size:13.5px}.recipe-select-card p{margin:0;color:var(--muted);font-size:11px}
-.label{font-size:10.5px;font-weight:700;color:#526176;margin-bottom:4px;white-space:nowrap}
 .metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
 .metric{background:#f5f8fc;border:1px solid var(--line);border-radius:12px;padding:12px}
 .metric span{display:block;color:var(--muted);font-size:10px;margin-bottom:5px}.metric strong{font-size:15px}
@@ -74,58 +69,38 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
 .result-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
 .mini{background:#f1f5f9;border-radius:9px;padding:9px}.mini span{display:block;font-size:10px;color:var(--muted);margin-bottom:4px}.mini strong{font-size:12px}
 .badge{display:inline-flex;padding:5px 9px;border-radius:999px;font-size:10px;font-weight:800;background:#eaf1ff;color:var(--primary)}
-.recipe-selector-wrap{display:grid;grid-template-columns:180px minmax(320px,1fr);gap:12px;align-items:center;margin-bottom:15px}.recipe-selector-wrap select{font-weight:700;background:#f8fbff}.recipe-tools{display:grid;grid-template-columns:minmax(180px,1fr) 180px auto auto auto auto auto;gap:8px;margin-bottom:14px}.recipe-list-empty{width:100%;padding:24px;border:1px dashed var(--line);border-radius:12px;text-align:center;color:var(--muted)}
-.recipe-tabs button{border:1px solid var(--line);background:#fff;padding:9px 12px;border-radius:9px;font-weight:700;cursor:pointer}
-.recipe-tabs button.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.recipe-selector-wrap{display:grid;grid-template-columns:180px minmax(320px,1fr);gap:12px;align-items:center;margin-bottom:15px}.recipe-selector-wrap select{font-weight:700;background:#f8fbff}.recipe-tools{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}.recipe-list-empty{width:100%;padding:24px;border:1px dashed var(--line);border-radius:12px;text-align:center;color:var(--muted)}
 .formgrid{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:14px}
 .recipe-identity-grid{display:grid;grid-template-columns:180px 150px minmax(280px,2fr) minmax(150px,1fr) minmax(130px,.8fr);gap:12px;margin-bottom:14px}
 .recipe-code-input{text-transform:uppercase;font-weight:800;letter-spacing:.5px;background:#f8fbff}
 .production-code-input{text-transform:uppercase;font-weight:900;letter-spacing:.5px;background:#eef4ff;color:var(--primary)}
 .recipe-code-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
-.recipe-code-row .btn{height:39px;white-space:nowrap}
-.recipe-code-badge{display:inline-flex;align-items:center;padding:4px 8px;border-radius:8px;background:#eaf1ff;color:var(--primary);font-size:10px;font-weight:800;letter-spacing:.4px;margin-right:7px}
 .note{background:#f8fbff;border:1px solid #dce8fb;border-radius:11px;padding:12px;color:#5f6f84;font-size:11px;line-height:1.5}
 .num{text-align:right}.center{text-align:center}.hidden{display:none}
 .recipe-total-row td{border-top:2px solid #b8cdf8;border-bottom:0;padding:11px 12px;background:#f7faff;vertical-align:middle}
 .recipe-total-row .totals-label{color:#526176;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.55px}
 .table-total{text-align:right;white-space:nowrap}
-.table-total span{display:block;color:#667085;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.45px;margin-bottom:4px}
+.table-total span{display:block;color:#667085;font-size:9px;font-weight:800;text-transform:uppercase;margin-bottom:4px}
 .table-total strong{display:block;color:#1d2939;font-size:16px;line-height:1.1}
 .table-total.batch strong,.table-total.phr strong{color:var(--primary)}
-.export-overlay{position:fixed;inset:0;background:rgba(20,32,50,.52);display:none;align-items:center;justify-content:center;padding:24px;z-index:1002}
-.export-overlay.open{display:flex}
-.export-card{width:min(680px,100%);max-height:88vh;background:#fff;border-radius:18px;box-shadow:0 25px 70px rgba(20,32,50,.28);display:flex;flex-direction:column;overflow:hidden}
-.export-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:22px 24px 14px;border-bottom:1px solid var(--line)}
-.export-head h2{font-size:21px;margin-bottom:5px}.export-head .sub{margin:0}
-.icon-btn{width:36px;height:36px;border:0;border-radius:10px;background:#eef3f8;color:#526176;font-size:22px;line-height:1;cursor:pointer}
-.export-select-all{display:flex;align-items:center;gap:11px;padding:13px 24px;background:#f7faff;border-bottom:1px solid var(--line);font-size:13px;font-weight:800;cursor:pointer}
-.export-select-all input,.export-recipe-item input{width:18px;height:18px;accent-color:var(--primary);flex:0 0 auto}
-.export-list{padding:12px 24px;overflow:auto;display:flex;flex-direction:column;gap:8px}
-.export-recipe-item{display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:11px;background:#fff;cursor:pointer}
-.export-recipe-item:hover,.export-recipe-item.checked{border-color:#aac4fa;background:#f8fbff}
-.export-recipe-title{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.export-recipe-meta{color:var(--muted);font-size:10px;margin-top:4px}
-.export-recipe-total{color:#344054;font-size:11px;font-weight:800;white-space:nowrap}
-.export-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 24px 20px;border-top:1px solid var(--line);background:#fff}
-.export-count{color:var(--muted);font-size:11px;font-weight:700}.export-actions{display:flex;gap:8px}
-#recipesPage .recipe-tools{display:flex;flex-wrap:wrap}
-#recipesPage .recipe-tools>input:not([type="file"]){flex:1 1 260px}
-#recipesPage .recipe-tools>#recipeCategoryFilter{flex:0 0 180px}
-#materialsPage .recipe-tools{display:flex;flex-wrap:wrap}
-#materialsPage .recipe-tools>input{flex:1 1 260px}
-#materialsPage .recipe-tools>#materialSortBy{flex:0 0 200px}
-.import-overlay{position:fixed;inset:0;background:rgba(20,32,50,.48);display:none;align-items:center;justify-content:center;z-index:1001}
-.import-overlay.open{display:flex}
-.import-card{width:520px;background:#fff;border-radius:18px;padding:24px;box-shadow:0 25px 70px rgba(20,32,50,.24)}
-.import-card h2{margin:0 0 6px;font-size:22px}
-.import-options{display:grid;grid-template-columns:1fr;gap:10px;margin-top:18px}
-.import-option{height:48px;border:0;border-radius:11px;font-weight:800;cursor:pointer;font-size:14px}
+.export-overlay,.import-overlay{position:fixed;inset:0;background:rgba(20,32,50,.5);display:none;align-items:center;justify-content:center;padding:24px;z-index:1002}
+.export-overlay.open,.import-overlay.open{display:flex}
+.export-card,.import-card{width:min(680px,100%);max-height:88vh;background:#fff;border-radius:18px;box-shadow:0 25px 70px rgba(20,32,50,.28);display:flex;flex-direction:column;overflow:hidden}
+.export-head,.export-foot{padding:16px 20px;border-bottom:1px solid var(--line)}
+.export-foot{border-bottom:0;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.icon-btn{width:34px;height:34px;border:0;border-radius:8px;background:#eef3f8;cursor:pointer}
+.export-select-all{padding:12px 20px;background:#f7faff;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center;font-weight:700}
+.export-list{padding:12px 20px;overflow:auto;display:flex;flex-direction:column;gap:8px}
+.export-recipe-item{display:grid;grid-template-columns:20px 1fr auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:10px}
+.import-card{width:480px;padding:22px}
+.import-options{display:grid;grid-template-columns:1fr;gap:10px;margin-top:16px}
+.import-option{height:46px;border:0;border-radius:10px;font-weight:700;cursor:pointer}
 .import-option.recipes{background:var(--primary);color:#fff}
 .import-option.materials{background:#eaf8f2;color:var(--success)}
 .import-option.both{background:#fff4df;color:var(--warning)}
-.import-cancel{margin-top:10px;background:#eef3f8;color:#526176}
-@media(max-width:1250px){.grid{grid-template-columns:1fr}.recipe-select-card{grid-template-columns:26px 1fr 125px 125px 95px}}
-@media(max-width:760px){.recipe-identity-grid,.formgrid,.recipe-select-card{grid-template-columns:1fr}}
+.import-cancel{background:#eef3f8;color:#526176}
+@media(max-width:1250px){.grid{grid-template-columns:1fr}}
+@media(max-width:760px){.recipe-identity-grid,.formgrid{grid-template-columns:1fr}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="vendor/jspdf.umd.min.js"></script>
@@ -153,17 +128,21 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
 <section id="dashboardPage" class="page active">
   <div class="grid">
     <div class="panel">
-      <h2>Select Recipes for Calculation</h2>
-      <div class="sub">Check the recipes to include, then enter expected injection daily run & existing finished pellet stock.</div>
+      <h2>Selected Recipes for Calculation</h2>
+      <div class="sub">Add only the active recipes you want to include in the material calculation.</div>
       
-      <div class="recipe-tools" style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap">
-        <input id="dashRecipeSearch" placeholder="Search recipes by code or name..." style="flex:1 1 180px">
-        <button type="button" id="toggleSelectedOnly" class="btn soft" style="font-size:12px;padding:0 10px">Show Selected Only</button>
-        <button type="button" id="selectAllDashRecipes" class="btn soft" style="font-size:12px;padding:0 10px">Select All</button>
-        <button type="button" id="clearAllDashRecipes" class="btn soft" style="font-size:12px;padding:0 10px">Clear All</button>
-      </div>
-
-      <div id="recipeSelection"></div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:40%">Selected Recipe</th>
+            <th class="num" style="width:26%">Pellets Stock (kg)</th>
+            <th class="num" style="width:26%">Injection (kg/day)</th>
+            <th style="width:8%"></th>
+          </tr>
+        </thead>
+        <tbody id="selectedRecipesBody"></tbody>
+      </table>
+      <button id="addCalcRecipeBtn" class="btn soft full" style="margin-top:12px">+ Add Recipe to Calculation</button>
       
       <div class="metric-grid">
         <div class="metric"><span>Selected Recipes</span><strong id="selectedCount">0</strong></div>
@@ -177,7 +156,7 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
         <h2>Material Stock</h2>
         <div class="sub">Enter virgin/raw materials in warehouse that you want to calculate.</div>
         <table>
-          <thead><tr><th>Material</th><th class="num" style="width:130px">Raw Stock kg</th><th style="width:50px"></th></tr></thead>
+          <thead><tr><th>Material</th><th class="num" style="width:130px">Raw Stock kg</th><th style="width:45px"></th></tr></thead>
           <tbody id="stockBody"></tbody>
         </table>
         <button id="addStock" class="btn soft full" style="margin-top:10px">+ Add Raw Material</button>
@@ -189,7 +168,7 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
         <div class="row space">
           <div>
             <strong style="font-size:13px">Select Raw Materials</strong>
-            <div class="multi-note">Choose up to 5 materials for one calculation.</div>
+            <div class="multi-note">Choose up to 5 materials for calculation.</div>
           </div>
           <button id="calculate" class="btn primary">Calculate Selected</button>
         </div>
@@ -211,8 +190,8 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
     </div>
 
     <div class="recipe-tools">
-      <input id="recipeSearch" placeholder="Search recipes...">
-      <select id="recipeCategoryFilter">
+      <input id="recipeSearch" placeholder="Search recipes..." style="flex:1 1 200px">
+      <select id="recipeCategoryFilter" style="flex:0 0 160px">
         <option value="">All Categories</option>
       </select>
       <button id="newRecipe" class="btn primary">+ New Recipe</button>
@@ -287,7 +266,7 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
           <td class="num">
             <div class="table-total batch">
               <span>Batch Weight</span>
-              <strong><span id="totalBatchValue" style="display:inline;color:inherit;font:inherit;letter-spacing:0;text-transform:none;margin:0">0</span> kg</strong>
+              <strong><span id="totalBatchValue">0</span> kg</strong>
             </div>
           </td>
           <td class="num">
@@ -323,8 +302,8 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
     </div>
 
     <div class="recipe-tools">
-      <input id="materialSearch" placeholder="Search materials, grades, countries, or companies...">
-      <select id="materialSortBy" style="font-weight:700;background:#f8fbff">
+      <input id="materialSearch" placeholder="Search materials, grades, countries, or companies..." style="flex:1 1 200px">
+      <select id="materialSortBy" style="font-weight:700;background:#f8fbff;flex:0 0 180px">
         <option value="name">Sort by: Name A-Z</option>
         <option value="name-desc">Sort by: Name Z-A</option>
         <option value="stock">Sort by: Total Stock (High to Low)</option>
@@ -392,6 +371,7 @@ input:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(4
 </div>
 
 <div id="toast" class="toast"></div>
+
 <script>
 const defaults = {
   activeRecipe:0,
@@ -424,13 +404,13 @@ const defaults = {
     {material:"Stabilizer",grade:"SAG-1015",kg:2000}
   ],
   rawMaterials:[]
-}
+};
+
 let state;
 const LOCAL_CACHE_KEY="pvcPlannerCloudStableV1";
 try{state=JSON.parse(localStorage.getItem(LOCAL_CACHE_KEY))||structuredClone(defaults)}catch(e){state=structuredClone(defaults)}
 
 let isDirty=false;
-let showSelectedOnlyDash=false;
 
 function toast(message){
   const el=document.getElementById("toast");
@@ -515,6 +495,7 @@ async function loadCloudState(){
   }
   migrateState();cacheState();isDirty=false;updateSaveStatus();renderDashboard();renderRecipes();renderRawMaterials();setCloudStatus("Hostinger Connected","online");
 }
+
 window.addEventListener("beforeunload",e=>{if(isDirty){e.preventDefault();e.returnValue=""}});
 function total(r){return (r.ingredients||[]).reduce((s,i)=>s+(+i.kg||0),0)}
 function fmt(n,d=4){
@@ -541,26 +522,15 @@ function parseKgInput(value){
 function materialTotalStock(m){return (Number(m.stockWipKg)||0)+(Number(m.stockWhKg)||0)}
 function norm(s){return (s||"").trim().toLowerCase()}
 function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
-
-function itemMaterial(item){
-  return (item.material ?? item.name ?? "").trim();
-}
-function itemGrade(item){
-  return (item.grade ?? "").trim();
-}
-function itemKey(item){
-  return (itemMaterial(item).toLowerCase()+"||"+itemGrade(item).toLowerCase());
-}
+function itemMaterial(item){return (item.material ?? item.name ?? "").trim()}
+function itemGrade(item){return (item.grade ?? "").trim()}
+function itemKey(item){return (itemMaterial(item).toLowerCase()+"||"+itemGrade(item).toLowerCase())}
 function fullItemLabel(item){
   const m=itemMaterial(item),g=itemGrade(item);
   return m&&g?m+" — "+g:(g||m||"Unnamed Material");
 }
-function compactItemLabel(item){
-  return itemGrade(item)||itemMaterial(item)||"Unnamed Material";
-}
-function makeMaterialId(){
-  return "rm-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8);
-}
+function compactItemLabel(item){return itemGrade(item)||itemMaterial(item)||"Unnamed Material"}
+function makeMaterialId(){return "rm-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8)}
 
 function normalizedProductionCode(value){
   const text=String(value||"").trim().toUpperCase().replace(/\s+/g,"");
@@ -599,6 +569,13 @@ function getNextProductionCode(category) {
   return `${prefix}-${String(maxNumber + 1).padStart(2, '0')}`;
 }
 
+function recipeDisplayLabel(r){
+  if(!r) return "Select recipe";
+  const pCode = r.productionCode ? `[${r.productionCode}] ` : "";
+  const rCode = r.code ? `[${r.code}] ` : "";
+  return `${pCode}${rCode}${r.name||"Unnamed Recipe"}`;
+}
+
 function migrateState(){
   state.recipes=(state.recipes||[]).map(r=>{
     const originalName=String(r.name||"").trim();
@@ -612,6 +589,7 @@ function migrateState(){
       color:String(r.color||inferRecipeColor(name)).trim(),
       dailyProduction:Number(r.dailyProduction)||0,
       pelletStockKg:Number(r.pelletStockKg)||0,
+      selected: Boolean(r.selected),
       ingredients:(r.ingredients||[]).map(i=>({
         ...i,
         material:itemMaterial(i),
@@ -669,57 +647,94 @@ function migrateState(){
 migrateState();
 
 function renderDashboard(){
-  const box=document.getElementById("recipeSelection");
-  if(!box) return;
-  box.innerHTML="";
-  const search=(document.getElementById("dashRecipeSearch")?.value||"").trim().toLowerCase();
+  const body=document.getElementById("selectedRecipesBody");
+  if(!body) return;
+  body.innerHTML="";
 
-  const filtered = state.recipes.map((r,i)=>({r,i})).filter(({r})=>{
-    if(showSelectedOnlyDash && !r.selected) return false;
-    const text = ((r.productionCode||"")+" "+(r.code||"")+" "+(r.name||"")+" "+(r.category||"")).toLowerCase();
-    return !search || text.includes(search);
-  });
+  const selectedRecipes = state.recipes.map((r, originalIndex)=>({r, originalIndex})).filter(item=>item.r.selected);
 
-  if(!filtered.length){
-    box.innerHTML='<div class="recipe-list-empty" style="margin-bottom:14px">No recipes match the search criteria.</div>';
+  if(!selectedRecipes.length){
+    body.innerHTML='<tr><td colspan="4" class="center" style="padding:22px;color:var(--muted)">No recipes added to calculation. Click "+ Add Recipe to Calculation" below.</td></tr>';
   } else {
-    filtered.forEach(({r,i})=>{
-      const d=document.createElement("div");
-      d.className="recipe-select-card"+(r.selected?" selected":"");
-      d.innerHTML=`
-        <input class="check" type="checkbox" ${r.selected?"checked":""}>
-        <div>
-          <h3>${r.productionCode?`<span class="recipe-code-badge">${esc(r.productionCode)}</span>`:""}${r.code?`<span class="recipe-code-badge">${esc(r.code)}</span>`:""}${esc(r.name)}</h3>
-          <p>${r.ingredients.length} ing · Batch: ${fmt(total(r),2)} kg</p>
-        </div>
-        <div>
-          <div class="label">Pellets Stock (kg)</div>
-          <input type="number" min="0" step="1" class="pellet-stock-input" value="${Number(r.pelletStockKg)||0}">
-        </div>
-        <div>
-          <div class="label">Injection (kg/day)</div>
-          <input type="number" min="0" step="1" class="daily-prod-input" value="${Number(r.dailyProduction)||0}">
-        </div>
-        <div>
-          <div class="label">Recipe</div>
-          <button class="btn soft full view-recipe-btn" style="height:38px">View</button>
-        </div>`;
-      d.querySelector(".check").addEventListener("change",e=>{r.selected=e.target.checked;save();renderDashboard()});
-      d.querySelector(".pellet-stock-input").addEventListener("input",e=>{r.pelletStockKg=+e.target.value||0;save()});
-      d.querySelector(".daily-prod-input").addEventListener("input",e=>{r.dailyProduction=+e.target.value||0;save();updateSummary()});
-      d.querySelector(".view-recipe-btn").addEventListener("click",()=>{state.activeRecipe=i;save();showPage("recipes");renderRecipes()});
-      box.appendChild(d);
-    });
-  }
+    selectedRecipes.forEach(({r, originalIndex})=>{
+      const tr=document.createElement("tr");
+      tr.innerHTML=`
+        <td>
+          <div class="combo-wrap">
+            <input class="combo-input" value="${esc(recipeDisplayLabel(r))}" placeholder="Select recipe" autocomplete="off">
+            <span class="combo-arrow">▼</span>
+            <div class="combo-list"></div>
+          </div>
+        </td>
+        <td><input class="num pellet-stock" type="number" min="0" step="1" value="${Number(r.pelletStockKg)||0}"></td>
+        <td><input class="num daily-prod" type="number" min="0" step="1" value="${Number(r.dailyProduction)||0}"></td>
+        <td class="center"><button class="btn danger remove-calc-recipe" style="height:34px;width:34px;padding:0">×</button></td>
+      `;
 
-  const toggleBtn = document.getElementById("toggleSelectedOnly");
-  if(toggleBtn){
-    toggleBtn.textContent = showSelectedOnlyDash ? "Show All Recipes" : "Show Selected Only";
-    toggleBtn.className = showSelectedOnlyDash ? "btn primary" : "btn soft";
+      const comboInput=tr.querySelector(".combo-input");
+      const comboList=tr.querySelector(".combo-list");
+      const pelletInput=tr.querySelector(".pellet-stock");
+      const dailyInput=tr.querySelector(".daily-prod");
+
+      function fillRecipeOptions(filterText=""){
+        const q=filterText.trim().toLowerCase();
+        const available=state.recipes.filter((rec, idx)=>idx===originalIndex || !rec.selected);
+        const filtered=available.filter(rec=>recipeDisplayLabel(rec).toLowerCase().includes(q));
+        
+        comboList.innerHTML="";
+        if(!filtered.length){
+          comboList.innerHTML='<div class="combo-empty">No matching recipe</div>';
+          return;
+        }
+        filtered.forEach(item=>{
+          const option=document.createElement("div");
+          option.className="combo-option";
+          option.innerHTML=`<strong>${esc(recipeDisplayLabel(item))}</strong><br><span style="color:var(--muted)">Batch: ${fmt(total(item),2)} kg · ${(item.ingredients||[]).length} ing</span>`;
+          option.addEventListener("mousedown",e=>{
+            e.preventDefault();
+            r.selected=false;
+            item.selected=true;
+            comboList.classList.remove("open");
+            save();
+            renderDashboard();
+          });
+          comboList.appendChild(option);
+        });
+      }
+
+      comboInput.addEventListener("focus",()=>{fillRecipeOptions("");comboList.classList.add("open")});
+      comboInput.addEventListener("input",e=>{fillRecipeOptions(e.target.value);comboList.classList.add("open")});
+      comboInput.addEventListener("blur",()=>setTimeout(()=>{
+        comboList.classList.remove("open");
+        comboInput.value=recipeDisplayLabel(r);
+      },120));
+
+      pelletInput.addEventListener("input",e=>{r.pelletStockKg=+e.target.value||0;save()});
+      dailyInput.addEventListener("input",e=>{r.dailyProduction=+e.target.value||0;save();updateSummary()});
+      
+      tr.querySelector(".remove-calc-recipe").addEventListener("click",()=>{
+        r.selected=false;
+        save();
+        renderDashboard();
+      });
+
+      body.appendChild(tr);
+    });
   }
 
   renderStocks();renderMaterials();updateSummary();
 }
+
+document.getElementById("addCalcRecipeBtn")?.addEventListener("click", ()=>{
+  const firstUnselected = state.recipes.find(r=>!r.selected);
+  if(firstUnselected){
+    firstUnselected.selected = true;
+    save();
+    renderDashboard();
+  } else {
+    alert("All existing recipes are already added to calculation.");
+  }
+});
 
 function updateSummary(){
   const sel=state.recipes.filter(r=>r.selected);
@@ -738,6 +753,7 @@ function allMaterialItems(){
 
 function renderStocks(){
   const body=document.getElementById("stockBody");
+  if(!body) return;
   body.innerHTML="";
   const allItems=allMaterialItems();
 
@@ -749,13 +765,13 @@ function renderStocks(){
     tr.innerHTML=`
       <td>
         <div class="combo-wrap">
-          <input class="combo-input" value="${esc(compactItemLabel(s))}" placeholder="Select material / grade" autocomplete="off">
+          <input class="combo-input" value="${esc(compactItemLabel(s))}" placeholder="Select raw material" autocomplete="off">
           <span class="combo-arrow">▼</span>
           <div class="combo-list"></div>
         </div>
       </td>
       <td><input class="num" type="number" min="0" step="0.01" value="${Number(s.kg)||0}"></td>
-      <td class="center"><button class="btn danger">×</button></td>`;
+      <td class="center"><button class="btn danger" style="height:34px;width:34px;padding:0">×</button></td>`;
 
     const comboInput=tr.querySelector(".combo-input");
     const comboList=tr.querySelector(".combo-list");
@@ -772,8 +788,7 @@ function renderStocks(){
       filtered.forEach(item=>{
         const option=document.createElement("div");
         option.className="combo-option";
-        option.innerHTML=`<strong>${esc(itemMaterial(item)||"—")}</strong><br>
-          <span style="color:var(--muted)">${esc(itemGrade(item)||"No grade / trade name")}</span>`;
+        option.innerHTML=`<strong>${esc(itemMaterial(item)||"—")}</strong><br><span style="color:var(--muted)">${esc(itemGrade(item)||"No grade")}</span>`;
         option.addEventListener("mousedown",e=>{
           e.preventDefault();
           s.material=itemMaterial(item);
@@ -2035,22 +2050,6 @@ document.getElementById("syncMaterials").onclick=syncRawMaterialsFromRecipes;
 document.getElementById("exportStockCountPdf").onclick=exportStockCountSheetPdf;
 document.getElementById("materialSearch").oninput=renderRawMaterials;
 document.getElementById("materialSortBy").onchange=renderRawMaterials;
-
-document.getElementById("dashRecipeSearch")?.addEventListener("input", renderDashboard);
-document.getElementById("toggleSelectedOnly")?.addEventListener("click", ()=>{
-  showSelectedOnlyDash = !showSelectedOnlyDash;
-  renderDashboard();
-});
-document.getElementById("selectAllDashRecipes")?.addEventListener("click", ()=>{
-  state.recipes.forEach(r => r.selected = true);
-  save();
-  renderDashboard();
-});
-document.getElementById("clearAllDashRecipes")?.addEventListener("click", ()=>{
-  state.recipes.forEach(r => r.selected = false);
-  save();
-  renderDashboard();
-});
 
 renderDashboard();renderRecipes();renderRawMaterials();isDirty=false;updateSaveStatus();
 loadCloudState().catch(error=>{console.error(error);setCloudStatus("Load Error","error");toast("Load failed: "+error.message)});
