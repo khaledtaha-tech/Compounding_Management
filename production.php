@@ -12,51 +12,6 @@
   <link rel="stylesheet" href="production.css" />
   <link rel="stylesheet" href="site.css" />
   <style>
-    .daily-shift-summary {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
-      padding: 16px 22px;
-      border-bottom: 1px solid var(--border);
-    }
-    .daily-shift-card {
-      min-width: 0;
-      padding: 14px 16px;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      background: var(--panel-strong);
-    }
-    .daily-shift-card > span {
-      display: block;
-      margin-bottom: 6px;
-      color: var(--muted);
-      font-size: 0.78rem;
-      font-weight: 800;
-      letter-spacing: 0.02em;
-    }
-    .daily-shift-card > strong {
-      display: block;
-      font-family: 'Manrope', sans-serif;
-      font-size: 1.35rem;
-      line-height: 1.2;
-    }
-    .daily-shift-breakdown {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 5px 12px;
-      margin-top: 7px;
-      color: var(--muted);
-      font-size: 0.78rem;
-      font-weight: 700;
-    }
-    .daily-shift-card.total {
-      border-color: color-mix(in srgb, var(--primary) 38%, var(--border));
-      background: color-mix(in srgb, var(--primary) 9%, var(--panel-strong));
-    }
-    @media (max-width: 760px) {
-      .daily-shift-summary { grid-template-columns: 1fr; padding: 14px 16px; }
-    }
-
     .pending-panel {
       margin: 0 22px 18px;
       padding: 16px 18px;
@@ -157,7 +112,7 @@
       <div>
         <p class="eyebrow">DAILY PRODUCTION</p>
         <h1>Compounding Production Tracker</h1>
-        <p class="subtitle">Record production by equipment, mix, date and shift.</p>
+        <p class="subtitle">Record daily production by equipment and mix.</p>
       </div>
       <div class="topbar-actions">
         <nav class="unified-nav" aria-label="Main modules">
@@ -269,19 +224,12 @@
           <form id="productionForm">
             <input type="hidden" id="recordId" />
             <input type="hidden" id="productionType" value="Mixer" />
+            <input type="hidden" id="shift" value="Full Day" />
 
             <div class="form-grid">
-              <label>
+              <label class="full-width">
                 <span>Date</span>
                 <input id="date" type="date" required />
-              </label>
-
-              <label>
-                <span>Shift</span>
-                <select id="shift" required>
-                  <option value="Morning">Morning</option>
-                  <option value="Night">Night</option>
-                </select>
               </label>
 
               <div id="mixerFields" class="field-group full-width">
@@ -383,33 +331,6 @@
             </div>
           </div>
 
-          <div class="daily-shift-summary" aria-label="Selected day production summary">
-            <article class="daily-shift-card">
-              <span>Morning Production</span>
-              <strong id="morningProduction">0.00 kg</strong>
-              <div class="daily-shift-breakdown">
-                <span>Mixer: <b id="morningMixer">0.00 kg</b></span>
-                <span>Pelletizer: <b id="morningPelletizer">0.00 kg</b></span>
-              </div>
-            </article>
-            <article class="daily-shift-card">
-              <span>Night Production</span>
-              <strong id="nightProduction">0.00 kg</strong>
-              <div class="daily-shift-breakdown">
-                <span>Mixer: <b id="nightMixer">0.00 kg</b></span>
-                <span>Pelletizer: <b id="nightPelletizer">0.00 kg</b></span>
-              </div>
-            </article>
-            <article class="daily-shift-card total">
-              <span>Total Production</span>
-              <strong id="shiftSummaryTotal">0.00 kg</strong>
-              <div class="daily-shift-breakdown">
-                <span>Mixer: <b id="shiftSummaryMixer">0.00 kg</b></span>
-                <span>Pelletizer: <b id="shiftSummaryPelletizer">0.00 kg</b></span>
-              </div>
-            </article>
-          </div>
-
           <div id="pendingDuplicatesPanel" class="pending-panel hidden">
             <div class="pending-panel-head">
               <div>
@@ -426,7 +347,6 @@
               <table>
                 <thead>
                   <tr>
-                    <th>Shift</th>
                     <th>Section</th>
                     <th>Equipment</th>
                     <th>Mix / Application</th>
@@ -447,7 +367,6 @@
               <thead>
                 <tr>
                   <th>Date</th>
-                  <th>Shift</th>
                   <th>Section</th>
                   <th>Equipment</th>
                   <th>Mix / Application</th>
