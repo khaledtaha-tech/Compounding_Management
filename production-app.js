@@ -4,6 +4,8 @@ const state = {
   recipes: [],
   filterDate: '',
   searchQuery: '',
+  sortOrder: localStorage.getItem('production-record-sort') === 'oldest' ? 'oldest' : 'newest',
+  productionMode: 'full_day',
   showAll: false,
   editingId: null,
   legacyBatchMode: false
@@ -371,7 +373,7 @@ function resetForm() {
   $('recordId').value = '';
   form.reset();
   $('date').value = state.filterDate || todayISO();
-  if ($('shift')) $('shift').value = 'Full Day';
+  if ($('shift')) $('shift').value = state.productionMode === 'two_shifts' ? 'Morning' : 'Full Day';
   setProductionType('Mixer');
   renderRecipeOptions();
   applySelectedRecipe();
@@ -401,7 +403,9 @@ function editRecord(id) {
   $('recordId').value = id;
   setProductionType(record.type);
   $('date').value = record.date;
-  if ($('shift')) $('shift').value = record.shift || 'Full Day';
+  if ($('shift')) $('shift').value = state.productionMode === 'two_shifts'
+    ? (['Morning', 'Night'].includes(record.shift) ? record.shift : 'Morning')
+    : 'Full Day';
   $('color').value = record.color || '';
   $('quantityKg').value = round2(record.quantityKg).toFixed(2);
   $('application').value = record.application || '';
@@ -445,7 +449,9 @@ function duplicateRecord(id) {
   $('recordId').value = '';
   setProductionType(record.type);
   $('date').value = record.date;
-  if ($('shift')) $('shift').value = record.shift || 'Full Day';
+  if ($('shift')) $('shift').value = state.productionMode === 'two_shifts'
+    ? (['Morning', 'Night'].includes(record.shift) ? record.shift : 'Morning')
+    : 'Full Day';
   $('color').value = record.color || '';
   $('quantityKg').value = round2(record.quantityKg).toFixed(2);
   $('application').value = record.application || '';
@@ -499,23 +505,19 @@ function visibleRecords() {
     : state.records.filter((record) => record.date === state.filterDate);
  
   const query = state.searchQuery.trim().toLowerCase();
-  if (!query) return records;
- 
-  return records.filter((record) => {
-    const searchableText = [
-      record.mixerName,
-      record.pelletizerName,
-      record.mixCode,
-      record.recipeCode,
-      record.mixName,
-      record.color,
-      record.application
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase();
- 
-    return searchableText.includes(query);
+  if (query) {
+    records = records.filter((record) => {
+      const searchableText = [record.mixerName,record.pelletizerName,record.mixCode,record.recipeCode,record.mixName,record.color,record.application,record.shift]
+        .filter(Boolean).join(' ').toLowerCase();
+      return searchableText.includes(query);
+    });
+  }
+
+  const direction = state.sortOrder === 'oldest' ? 1 : -1;
+  return [...records].sort((a, b) => {
+    const dateCompare = String(a.date || '').localeCompare(String(b.date || ''));
+    if (dateCompare) return dateCompare * direction;
+    return String(a.createdAt || '').localeCompare(String(b.createdAt || '')) * direction;
   });
 }
  
@@ -564,6 +566,7 @@ function renderRecords() {
     const row = document.createElement('tr');
     row.innerHTML = `
       <td>${formatDate(record.date)}</td>
+      <td class="shift-cell ${state.productionMode === 'full_day' ? 'hidden' : ''}">${escapeHtml(record.shift || 'Full Day')}</td>
       <td><span class="badge">${escapeHtml(record.type)}</span></td>
       <td><strong>${escapeHtml(recordEquipmentName(record))}</strong></td>
       <td>${escapeHtml(recordMixDetail(record))}</td>
@@ -595,6 +598,45 @@ async function loadRecords() {
     emptyState.classList.remove('hidden');
     emptyState.querySelector('h3').textContent = 'Unable to load production data';
     emptyState.querySelector('p').textContent = 'Check the server connection and try again.';
+  }
+}
+
+function syncProductionModeUI() {
+  const isFullDay = state.productionMode === 'full_day';
+  $('productionModeToggle').checked = isFullDay;
+  $('productionModeTitle').textContent = isFullDay ? 'Full Day Production' : 'Two-Shift Production';
+  $('productionModeHelp').textContent = isFullDay ? 'Each record represents the complete day.' : 'Choose Morning or Night for every production record.';
+  $('shiftField').classList.toggle('hidden', isFullDay);
+  $('shiftHeader').classList.toggle('hidden', isFullDay);
+  document.querySelectorAll('.shift-cell').forEach((cell) => cell.classList.toggle('hidden', isFullDay));
+  if (isFullDay) $('shift').value = 'Full Day';
+  else if (!['Morning', 'Night'].includes($('shift').value)) $('shift').value = 'Morning';
+}
+
+async function loadSettings() {
+  const response = await apiFetch('api.php?action=settings');
+  if (!response.ok) throw new Error('Failed to load production settings.');
+  const settings = await response.json();
+  state.productionMode = settings.productionMode === 'two_shifts' ? 'two_shifts' : 'full_day';
+  syncProductionModeUI();
+}
+
+async function saveProductionMode(mode) {
+  const previousMode = state.productionMode;
+  state.productionMode = mode;
+  syncProductionModeUI();
+  $('productionModeStatus').textContent = 'Saving...';
+  try {
+    const response = await apiFetch('api.php?action=settings', { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({productionMode:mode}) });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Could not save production mode.');
+    $('productionModeStatus').textContent = 'Saved';
+    resetForm();
+    renderRecords();
+  } catch (error) {
+    state.productionMode = previousMode;
+    syncProductionModeUI();
+    $('productionModeStatus').textContent = error.message;
   }
 }
  
@@ -850,6 +892,15 @@ $('cancelEdit').addEventListener('click', resetForm);
 $('recordsSearch').addEventListener('input', (event) => {
   state.searchQuery = event.target.value;
   renderRecords();
+});
+$('recordsSort').value = state.sortOrder;
+$('recordsSort').addEventListener('change', (event) => {
+  state.sortOrder = event.target.value === 'oldest' ? 'oldest' : 'newest';
+  localStorage.setItem('production-record-sort', state.sortOrder);
+  renderRecords();
+});
+$('productionModeToggle').addEventListener('change', (event) => {
+  saveProductionMode(event.target.checked ? 'full_day' : 'two_shifts');
 });
 $('filterDate').addEventListener('change', (event) => {
   state.filterDate = event.target.value;
@@ -1342,6 +1393,7 @@ async function initialize() {
   $('filterDate').value = state.filterDate;
   $('dailyReportDate').value = yesterdayISO();
   $('monthlyReportMonth').value = currentMonthISO();
+  await loadSettings();
   await loadEquipment();
   await loadRecipeSuggestions();
   resetForm();
