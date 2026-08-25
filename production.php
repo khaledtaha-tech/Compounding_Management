@@ -139,6 +139,23 @@
     </header>
 
     <main>
+      <section class="production-mode-panel" aria-label="Production entry mode">
+        <div>
+          <p class="eyebrow">ENTRY MODE</p>
+          <strong id="productionModeTitle">Full Day Production</strong>
+          <small id="productionModeHelp">Each record represents the complete day.</small>
+        </div>
+        <div class="mode-control">
+          <span>Two Shifts</span>
+          <label class="mode-switch" title="Switch production entry mode">
+            <input id="productionModeToggle" type="checkbox" checked />
+            <span class="mode-slider"></span>
+          </label>
+          <span>Full Day</span>
+          <small id="productionModeStatus" aria-live="polite"></small>
+        </div>
+      </section>
+
       <section class="summary-grid">
         <article class="summary-card accent">
           <span>Selected Day Total</span>
@@ -224,12 +241,19 @@
           <form id="productionForm">
             <input type="hidden" id="recordId" />
             <input type="hidden" id="productionType" value="Mixer" />
-            <input type="hidden" id="shift" value="Full Day" />
 
             <div class="form-grid">
               <label class="full-width">
                 <span>Date</span>
                 <input id="date" type="date" required />
+              </label>
+
+              <label id="shiftField" class="full-width hidden">
+                <span>Shift</span>
+                <select id="shift">
+                  <option value="Morning">Morning</option>
+                  <option value="Night">Night</option>
+                </select>
               </label>
 
               <div id="mixerFields" class="field-group full-width">
@@ -326,6 +350,13 @@
                 <span>View date</span>
                 <input id="filterDate" type="date" />
               </label>
+              <label>
+                <span>Sort records</span>
+                <select id="recordsSort">
+                  <option value="newest">Newest first</option>
+                  <option value="oldest">Oldest first</option>
+                </select>
+              </label>
               <button id="showAll" class="secondary-button" type="button">Show all</button>
               <button id="duplicatePreviousDay" class="secondary-button" type="button">Duplicate Previous Day</button>
             </div>
@@ -367,6 +398,7 @@
               <thead>
                 <tr>
                   <th>Date</th>
+                  <th id="shiftHeader" class="hidden">Shift</th>
                   <th>Section</th>
                   <th>Equipment</th>
                   <th>Mix / Application</th>
