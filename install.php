@@ -46,6 +46,11 @@ try {
             state_json TEXT NOT NULL,
             updated_at DATETIME NOT NULL
         )");
+        $pdo->exec("CREATE TABLE IF NOT EXISTS app_settings (
+            user_id INTEGER PRIMARY KEY,
+            production_mode VARCHAR(20) NOT NULL DEFAULT 'full_day',
+            updated_at DATETIME NOT NULL
+        )");
     } else {
         $pdo->exec("CREATE TABLE IF NOT EXISTS users (
             id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -67,7 +72,7 @@ try {
             user_id INT UNSIGNED NOT NULL,
             type ENUM('Mixer','Pelletizer') NOT NULL,
             production_date DATE NOT NULL,
-            shift ENUM('Morning','Night') NOT NULL,
+            shift VARCHAR(20) NOT NULL DEFAULT 'Full Day',
             equipment_id VARCHAR(80) NULL,
             equipment_name VARCHAR(100) NOT NULL,
             mix_code VARCHAR(80) NULL,
@@ -100,6 +105,14 @@ try {
             state_json LONGTEXT NOT NULL,
             updated_at DATETIME NOT NULL,
             CONSTRAINT fk_material_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        $pdo->exec("ALTER TABLE production_records MODIFY shift VARCHAR(20) NOT NULL DEFAULT 'Full Day'");
+        $pdo->exec("UPDATE production_records SET shift='Full Day' WHERE shift='' OR shift IS NULL");
+        $pdo->exec("CREATE TABLE IF NOT EXISTS app_settings (
+            user_id INT UNSIGNED PRIMARY KEY,
+            production_mode VARCHAR(20) NOT NULL DEFAULT 'full_day',
+            updated_at DATETIME NOT NULL,
+            CONSTRAINT fk_settings_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     }
 
