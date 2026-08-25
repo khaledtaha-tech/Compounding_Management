@@ -22,7 +22,7 @@ function iso_now(): string
 
 try {
     $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
-    if (empty($_SESSION['compounding_schema_v5'])) {
+    if (empty($_SESSION['compounding_schema_v6'])) {
         if ($driver === 'mysql') {
             $recipeCodeColumn = $pdo->query("SHOW COLUMNS FROM production_records LIKE 'recipe_code'")->fetch();
             if (!$recipeCodeColumn) {
@@ -36,12 +36,39 @@ try {
             if (!$batchWeightColumn) {
                 $pdo->exec("ALTER TABLE production_records ADD COLUMN batch_weight_kg DECIMAL(14,4) NULL AFTER batch_count");
             }
+            $pdo->exec("ALTER TABLE production_records MODIFY shift VARCHAR(20) NOT NULL DEFAULT 'Full Day'");
+            $pdo->exec("UPDATE production_records SET shift='Full Day' WHERE shift='' OR shift IS NULL");
         }
-        $_SESSION['compounding_schema_v5'] = true;
+        if ($driver === 'sqlite') {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS app_settings (user_id INTEGER PRIMARY KEY, production_mode VARCHAR(20) NOT NULL DEFAULT 'full_day', updated_at DATETIME NOT NULL)");
+        } else {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS app_settings (user_id INT UNSIGNED PRIMARY KEY, production_mode VARCHAR(20) NOT NULL DEFAULT 'full_day', updated_at DATETIME NOT NULL, CONSTRAINT fk_settings_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        }
+        $_SESSION['compounding_schema_v6'] = true;
     }
 
     if ($action === 'session' && $method === 'GET') {
         json_response(['user' => $user]);
+    }
+
+    if ($action === 'settings') {
+        if ($method === 'GET') {
+            $stmt = $pdo->prepare('SELECT production_mode FROM app_settings WHERE user_id = ?');
+            $stmt->execute([$user['id']]);
+            $mode = (string) ($stmt->fetchColumn() ?: 'full_day');
+            json_response(['productionMode' => $mode]);
+        }
+        if ($method === 'PUT' || $method === 'POST') {
+            $mode = clean((string) ($body['productionMode'] ?? ''), 20);
+            if (!in_array($mode, ['full_day', 'two_shifts'], true)) json_response(['error' => 'Invalid production mode.'], 422);
+            if ($driver === 'sqlite') {
+                $stmt = $pdo->prepare('INSERT INTO app_settings (user_id,production_mode,updated_at) VALUES (?,?,?) ON CONFLICT(user_id) DO UPDATE SET production_mode=excluded.production_mode,updated_at=excluded.updated_at');
+            } else {
+                $stmt = $pdo->prepare('INSERT INTO app_settings (user_id,production_mode,updated_at) VALUES (?,?,?) ON DUPLICATE KEY UPDATE production_mode=VALUES(production_mode),updated_at=VALUES(updated_at)');
+            }
+            $stmt->execute([$user['id'],$mode,iso_now()]);
+            json_response(['productionMode' => $mode]);
+        }
     }
 
     if ($action === 'equipment') {
@@ -119,7 +146,14 @@ try {
                 : null;
             if (!in_array($type, ['Mixer', 'Pelletizer'], true)) json_response(['error' => 'Choose Mixer or Pelletizer.'], 422);
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) json_response(['error' => 'A valid date is required.'], 422);
-            if ($shift === '') $shift = 'Full Day';
+            $settingsStmt = $pdo->prepare('SELECT production_mode FROM app_settings WHERE user_id = ?');
+            $settingsStmt->execute([$user['id']]);
+            $productionMode = (string) ($settingsStmt->fetchColumn() ?: 'full_day');
+            if ($productionMode === 'full_day') {
+                $shift = 'Full Day';
+            } elseif (!in_array($shift, ['Morning', 'Night'], true)) {
+                json_response(['error' => 'Choose Morning or Night shift.'], 422);
+            }
             if ($color === '') json_response(['error' => 'Color is required.'], 422);
 
             $equipmentId = clean((string) ($type === 'Mixer' ? ($body['mixerId'] ?? '') : ($body['pelletizerId'] ?? '')), 80);
